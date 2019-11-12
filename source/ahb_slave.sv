@@ -37,14 +37,14 @@ module ahb_slave (
 		output reg [1:0] data_size
                  );
 
-//state machine 
-wire enable;
+//state machine: not used at the moment
+/*wire enable;
 ahb_slave_cntrlr CNTRLR(.clk(clk),
                         .n_rst(n_rst),
                         .hsel(hsel),
                         .hresp(c_hresp),
                         .htran(htrans),
-                        .enable(enable));
+                        .enable(enable));*/
 
 //clear transfer size buffer fsm
 wire clr_tx_ds;

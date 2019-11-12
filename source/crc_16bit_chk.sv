@@ -21,7 +21,7 @@ reg test;
 
 always_ff @ (posedge clk, negedge n_rst) begin
   if (n_rst == 1'b0) begin
-    Q <= 16'h0000;
+    Q <= 16'hffff;
   end else begin
     Q <= next_Q;
   end
@@ -32,7 +32,7 @@ always_comb begin
   test = Q[15] ^ serial_in;
 
   if (clear == 1'b1) begin
-    next_Q = 16'h0000;
+    next_Q = 16'hffff;
   end else if (shift_en == 1'b1) begin
     next_Q = Q << 1;
     if (test == 1'b1) begin

@@ -46,7 +46,7 @@ module RX_timer (clk,
   always_comb begin //state machine comb block
     next_state = state;
     count_enable = 1'b1;
-    clear = 1'b0
+    clear = 1'b0;
 
     case(state)
       IDLE: begin
@@ -73,7 +73,7 @@ module RX_timer (clk,
 
       WAIT4: begin
         count_enable = 1'b0;
-        next_state = IDLE
+        next_state = IDLE;
       end
     endcase
   end //comb block
@@ -87,7 +87,7 @@ module RX_timer (clk,
                 .rollover_flag(skip_bit));
 
   always_comb begin
-    enable_8 = (!skip_bit) && count_enable
+    enable_8 = (!skip_bit) && count_enable;
   end
 
   flex_counter #(.NUM_CNT_BITS(4)) counter_8

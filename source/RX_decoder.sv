@@ -27,13 +27,13 @@ module RX_decoder (clk,
       next_value = 1;
     end else if (d_plus == 1'b0 && d_minus == 1'b1) begin
       next_value = 1'b0;
-    end else if (d_plus == 1'b0 and d_minus == 1'b0) begin
+    end else if (d_plus == 1'b0 && d_minus == 1'b0) begin
       next_eop = 1'b1;
     end
   end
 
   always_comb begin //comb block for decoding
-    value = 1'b1; //set default to prevent latches
+    next_decoded = 1'b1; //set default to prevent latches
     if (next_value == value) begin
       next_decoded = 1'b1;
     end else if (next_value == value) begin

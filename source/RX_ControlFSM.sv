@@ -23,7 +23,7 @@ module RX_ControlFSM (clk,
   localparam PID_OUT = 8'b00011110;
   localparam PID_IN = 8'b10010110;
   localparam PID_DATA0 = 8'b00111100;
-  localparam PID_DATA1 = 8'10110100;
+  localparam PID_DATA1 = 8'b10110100;
   localparam PID_ACK = 8'b00101101;
   localparam PID_NAK = 8'b10100101;
 
@@ -55,7 +55,7 @@ module RX_ControlFSM (clk,
     en_buffer = 1'b0;
     clear_crc = 1'b0;
     next_state = state;
-    PID = next_PID;
+    next_PID = PID;
 
     case(state)
     IDLE: begin
@@ -75,7 +75,7 @@ module RX_ControlFSM (clk,
 
     PIDWAIT: begin
       if (byte_done == 1'b1) begin
-        next_state = CHECKPID
+        next_state = CHECKPID;
       end
     end
 
@@ -102,7 +102,7 @@ module RX_ControlFSM (clk,
     end
 
     TOKEN: begin
-      clear_crc = 1'b1
+      clear_crc = 1'b1;
       if (byte_done == 1'b1) begin
         next_state = READTOKEN;
       end
@@ -140,7 +140,7 @@ module RX_ControlFSM (clk,
 
     DATA: begin
       next_RX_PID = PACKET_DATA;
-      clear_crc = 1'b1
+      clear_crc = 1'b1;
       if (byte_done == 1'b1) begin
         next_state = READDATA;
       end

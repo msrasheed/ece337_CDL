@@ -27,7 +27,7 @@ module USB_RX(clk,
   wire ignore_bit;
 
   RX_ControlFSM controller (.clk(clk),
-                            .n_rst(n_rst)
+                            .n_rst(n_rst),
                             .eop(eop),
                             .decoded_bit(decoded_bit),
                             .pass_5_bit(pass_5_bit),
@@ -57,7 +57,7 @@ module USB_RX(clk,
                   .en_sample(en_sample));
 
   RX_bit_stuff_detector bsd (.clk(clk),
-                             .(n_rst(n_rst),
+                             .n_rst(n_rst),
                              .decoded_bit(decoded_bit),
                              .ignore_bit(ignore_bit));
 
@@ -68,7 +68,21 @@ module USB_RX(clk,
                       .decoded(decoded_bit),
                       .eop(eop));
 
-//TODO need to assign and for the store data enable
+  assign store_RX_packet_data = byte_done && en_buffer;
+ 
 //TODO need to add CRC modules
 
+  crc_16bit_chk crc16 (.clk(clk),
+		       .n_rst(n_rst),
+		       .clear(clear_crc),
+		       .serial_in(decoded_bit),
+		       .shift_en(en_sample),
+		       .pass(pass_16_bit));
+
+  crc_5bit_chk crc5 (.clk(clk),
+		       .n_rst(n_rst),
+		       .clear(clear_crc),
+		       .serial_in(decoded_bit),
+		       .shift_en(en_sample),
+		       .pass(pass_5_bit));
 endmodule

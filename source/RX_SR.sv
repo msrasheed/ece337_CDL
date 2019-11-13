@@ -8,7 +8,7 @@ module RX_SR (clk, n_rst, shift_strobe, serial_in, ignore_bit, RX_packet_data);
   input wire ignore_bit;
   output wire [15:0] RX_packet_data;
 
-  wire shift_en;
+  reg shift_en;
 
   always_comb begin
     shift_en = shift_strobe && (!ignore_bit);
@@ -19,6 +19,6 @@ module RX_SR (clk, n_rst, shift_strobe, serial_in, ignore_bit, RX_packet_data);
                .n_rst(n_rst),
                .shift_enable(shift_en),
                .serial_in(serial_in),
-               .parallel_out(packet_data);
+               .parallel_out(packet_data));
 
 endmodule

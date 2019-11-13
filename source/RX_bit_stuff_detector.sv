@@ -15,7 +15,7 @@ module RX_bit_stuff_detector (clk,
   state_type next_state;
 
   always_comb begin //case statement for state assignment
-    state = IDLE; //prevent latches
+    next_state = IDLE; //prevent latches
     ignore_bit = 1'b0;
 
     case(state)

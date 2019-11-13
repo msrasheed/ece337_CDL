@@ -1,0 +1,46 @@
+Assumptions: Values set for tx_packet:
+             00 : IDLE
+             01 : DATA
+             10 : ACK
+             11 : NACK
+             
+             Valid PIDs
+             IDLE = {1111, 0000}
+             DATA = {1100, 0011}
+             ACK = {1101, 0010}
+             NACK = {0101, 1010}
+           
+ Net List for Modules:
+ 
+ Timer:
+ input wire clk;
+ input wire n_rst;
+ output reg shift_strobe;
+ output reg [3:0] bit_count;
+ 
+ FSM:
+ input wire [1:0] tx_packet;
+ input wire clk;
+ input wire n_rst;
+ input wire [7:0] tx_data;
+ output reg get_tx_data;
+ output enable_timer;
+ 
+ Encoder:
+ input wire clk;
+ input wire n_rst;
+ input wire serial_in;
+ input wire encoder_in;
+ output reg dPlus;
+ output reg dMinus;
+ 
+ Bit Stuffer:
+ input wire clk,
+ input wire n_rst;
+ input wire serial_in;
+ output reg encoder_in;
+ 
+ pTs Wrapper (8 BIT, LSB):
+ input wire [7:0] parallel_in;
+ input wire load_enable;
+ input wire shift_ena

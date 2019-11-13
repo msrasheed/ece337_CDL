@@ -1,10 +1,10 @@
 //Timer module for USB RX CDL
 
-module RX_Timer (clk,
-              n_rst,
-              d_plus,
-              d_minus,
-              en_sample);
+module RX_timer (clk,
+                n_rst,
+                d_plus,
+                d_minus,
+                en_sample);
 
   input wire clk;
   input wire n_rst;

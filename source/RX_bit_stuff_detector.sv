@@ -1,9 +1,9 @@
 //Bit Stuff detector for CDL USB RX
 
-module RX_BitStuffDetector (clk,
-                            n_rst,
-                            decoded_bit,
-                            ignore_bit);
+module RX_bit_stuff_detector (clk,
+                              n_rst,
+                              decoded_bit,
+                              ignore_bit);
   input wire clk;
   input wire n_rst;
   input wire decoded_bit;

@@ -1,6 +1,6 @@
 //Decoder module for CDL USB RX
 
-module RX_Decoder (clk,
+module RX_decoder (clk,
                 n_rst,
                 d_plus,
                 d_minus,

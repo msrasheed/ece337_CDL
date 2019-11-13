@@ -60,21 +60,19 @@ module RX_ControlFSM (clk,
     case(state)
     IDLE: begin
       next_RX_PID = PACKET_IDLE;
-      if (sr_val[7:0] == 8'b00000001) begin
-        next_state = PIDWAIT;
+      if (sr_val == 1'b1) begin
+        next_state = SYNC;
       end
     end
 
-/*
-//I dont think this is needed anymore 
-     SYNC: begin
+    SYNC: begin
       if (sr_val[7:0] == 8'b00000001) begin
         next_state = PIDWAIT;
       end else begin
         next_state = IDLE;
       end
     end
-*/
+
     PIDWAIT: begin
       if (byte_done == 1'b1) begin
         next_state = CHECKPID;

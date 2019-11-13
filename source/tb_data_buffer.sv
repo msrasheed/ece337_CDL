@@ -77,7 +77,124 @@ module tb_data_buffer();
       end
    endtask // reset_dut
 
-   //TODO add task for sending a byte from RX
-   //TODO add task for getting RX data
-   //TODO add task for storing TX data
-   //TODO add task for sending TX data packet
+   //task for receiving a byte from RX
+   task rx_send_byte;
+      input logic [7:0] rx_byte;
+      begin
+	 tb_rx_packet_data = rx_byte;
+	 tb_store_rx_packet_data = 1'b1;
+	 
+	 @(posedge tb_clk); //hold rx_packet_data high for one clock cycle
+
+	 tb_store_rx_packet_data  = 1'b0;
+      end   
+   endtask // rx_send_byte
+
+   //add task for sending multiple bytes to buffer
+   task rx_send_bytes;
+      input integer num_bytes;
+      input logic [(num_bytes * 8 - 1):0] data;
+      integer 				  i;
+      integer 				  top_of_byte;
+      
+      begin
+	 for (i = 0; i < num_bytes; i++)
+	   begin
+	      top_of_byte = ((i + 1) * 8) - 1;	      
+	      rx_send_byte(data[top_of_byte: top_of_byte - 7]);
+	   end
+      end
+   endtask // rx_send_bytes
+   
+   //task for sending data to AHB-Lite Slave
+   task slave_request_data;
+      input logic [1:0] data_size;
+      input logic [31:0] expected_data;
+      begin
+	 tb_get_rx_data = 1'b1;
+	 case(data_size)
+	   2'd0: begin //1 byte
+	      assert({24'd0, expected_data[7:0]} == tb_rx_data)
+		$info("correct RX data for read 1 byte from data buffer");
+	      else
+		$error("correct RX data for read 1 byte from data buffer");
+	   end
+	   2'd1: begin //2 byte
+	      assert({16'd0, expected_data[15:0]} == tb_rx_data)
+		$info("correct RX data for read 2 bytes from data buffer");
+	      else
+		$error("correct RX data for read 2 bytes from data buffer");
+	   end
+	   2'd2: begin //3 byte
+	      assert({8'd0, expected_data[23:0]} == tb_rx_data)
+		$info("correct RX data for read 3 bytes from data buffer");
+	      else
+		$error("correct RX data for read 3 bytes from data buffer");
+	   end
+	   2'd3: begin //4 byte
+	      assert(expected_data == tb_rx_data)
+		$info("correct RX data for read 4 bytes from data buffer");
+	      else
+		$error("correct RX data for read 4 bytes from data buffer");
+	   end
+	 endcase // case (data_size)
+      end
+   endtask // slave_request_data 
+	 
+   //task for storing TX data
+   task send_tx_data;
+      input logic [1:0] num_bytes;
+      input logic [31:0] tx_data;
+      begin
+	 tb_get_rx_data = 1'b1;
+	 case(data_size)
+	   2'd0: begin //1 byte
+	      tb_store_tx_data = {24'd0, tx_data[7:0]};
+	   end
+	   2'd1: begin //2 byte
+	      tb_store_tx_data = {16'd0, tx_data[15:0]};
+
+	   end
+	   2'd2: begin //3 byte
+	      tb_store_tx_data = {8'd0, tx_data[23:0]};
+
+	   end
+	   2'd3: begin //4 byte
+	      tb_store_tx_data = tx_data;
+	   end
+	 endcase // case (data_size)
+      end
+   endtask // send_tx_data
+   
+   //task for requesting TX data packet
+   task request_tx_packet;
+      input logic [7:0] expected_byte;
+      begin
+	 tb_get_tx_data_packet = 1'b1;
+	 @(posedge tb_clk);//wait a clock cycle after asserting
+	 assert(expected_byte == tb_tx_packet_data)
+	   $info("correct tx_packet_data sent to usb tx");
+	 else
+	   $error("incorrect tx_packet_data sent to usb tx");
+	 tb_get_tx_data_packet = 1'b0;
+      end
+   endtask
+      
+	 
+   //task for checking buffer occupancy
+   task check_buffer_occupancy;
+      input logic [6:0] expected_occupancy;
+      begin
+	 assert(tb_buffer_occupancy == expected_occupancy)
+	   $info("correct output for buffer occupancy");
+	 else
+	   $error("incorrect output for buffer occupancy");
+      end
+   endtask // check_buffer_occupancy
+   
+   //TODO add task for setting buffer reserved and trying to write
+   
+   //TODO write test cases and run tasks to check operation
+   
+ 		
+endmodule

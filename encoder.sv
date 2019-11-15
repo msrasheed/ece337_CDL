@@ -1,4 +1,4 @@
-module encoder(input wire clk, input wire encoder_in, input wire[2:0] state_val, output reg d_plus, output reg d_minus);
+module encoder(input wire clk, input wire n_rst, input wire encoder_in, input wire[2:0] state_val, output reg d_plus, output reg d_minus);
 
 
 //Next State Register Values for d plus and d minus
@@ -24,11 +24,11 @@ if (state_val == 3'd0)  begin
 	next_d_plus = !(d_plus);
 	next_d_minus = !(d_minus);
 end
-else if (state_val == 3'd1 || state_val == 3'd2) begin
+else if (state_val == 3'd1 || state_val == 3'd2 || state_val == 3'd3 || state_val == 3'd4) begin
 
 	if (serial_in == 1'b0) begin
 		next_d_plus = !(d_plus);
-		next_d)minus = !(d_minus);
+		next_d_minus = !(d_minus);
 	end
 	else if (serial_in == 1'b1) begin
 		next_d_plus = d_plus;
@@ -36,7 +36,7 @@ else if (state_val == 3'd1 || state_val == 3'd2) begin
 	end
 
 end
-else if(state_val == 3'd3 || state_val == 3'd4) begin
+else if(state_val == 3'd5 || state_val == 3'd6) begin
 	next_d_plus = 1'b0;
 	next_d_minus = 1'b0;
 end
@@ -56,10 +56,6 @@ d_minus <= next_d_minus;
 end
 end
 
-endmodule
 
-
-endcase
-end
 
 endmodule

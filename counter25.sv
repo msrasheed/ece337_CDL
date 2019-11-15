@@ -1,12 +1,8 @@
 `timescale 1ns / 100ps
-module flex_counter
-#( parameter NUM_CNT_BITS = 4)
-
-( input wire clk, input wire n_rst, input wire [NUM_CNT_BITS - 1:0] rollover_val, input wire count_enable, input wire clear,
-  output reg rollover_flag, output reg [NUM_CNT_BITS - 1:0] count_out );
+module counter25 (input wire clk, input wire n_rst,input wire count_enable, input wire clear, output reg rollover_flag, output reg [4:0] count_out);
 
   
-reg [NUM_CNT_BITS - 1:0] next_count;
+reg [4:0] next_count;
 reg next_roll_over;
 always_comb 
 begin 
@@ -30,34 +26,161 @@ end
 always_comb 
 begin 
         next_roll_over = 1'b0;
-	if (count_out == rollover_val - 1) begin
+
+	if (count_out == 5'd8) 
        	next_roll_over = 1'b1;
-	end
+
+        else if(count_out == 5'd16) 
+        next_roll_over = 1'b1;
+
+        else if(count_out == 5'd25) 
+        next_roll_over = 1'b1;
 end
 
 
 always_ff @(posedge clk, negedge n_rst) 
 
-	begin 
-		if (n_rst == 1'b0) begin
-       	 		count_out <= 0;
-		end
-      
-		else begin
-			count_out <= next_count;
-        	end
-		
+	
 
-end
 
-always_ff @(posedge clk, negedge n_rst) 
-	begin
-		if (n_rst == 1'b0) begin
-			rollover_flag <= 1'b0;
-		end
-                else begin
-			rollover_flag <= next_roll_over;
-		end
-	end
 
-endmodule 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 

@@ -65,6 +65,9 @@ module tb_USB_RX;
   logic [5:0] tb_prev_vals;
   logic [4:0] tb_crc_5bit;
   logic [15:0] tb_crc_16bit;
+  logic [6:0] tb_usb_addr = 7'd0;
+  logic [3:0] tb_usb_endpoint = 4'd0;
+  logic [7:0] tb_send_data [];
 
   //Clock generation Block
   always begin
@@ -107,6 +110,77 @@ module tb_USB_RX;
   end
   endtask
 
+  //calc 5 bit crc
+  task calc_crc5;
+    input [6:0] addr;
+    input [3:0] endref;
+    logic test;
+    logic [10:0] senddata;
+    integer i;
+  begin
+    tb_crc_5bit = '1;
+    senddata = {addr, endref};
+    for (i = 10; i > -1; i = i + 1)
+    begin
+      test = senddata[i] ^ tb_crc_5bit[4];
+      tb_crc_5bit = tb_crc_5bit << 1;
+      if (test == 1'b1) begin
+        tb_crc_5bit = tb_crc_5bit ^ 5'b00101;
+      end
+    end
+    tb_crc_5bit = ~tb_crc_5bit;
+  end
+  endtask
+
+  //calc 16 bit crc
+  task calc_crc16;
+    input [7:0] senddata[];
+    integer i;
+    integer j;
+    logic test;
+  begin
+    tb_crc_16bit = '1;
+    for (i = 0; i < senddata.size(); i = i + 1)
+    begin
+      for (j = 7; j > -1; j = j - 1)
+      begin
+        test = senddata[i][j] ^ tb_crc_16bit[15];
+        tb_crc_16bit = tb_crc_16bit << 1;
+        if (test == 1'b1) begin
+          tb_crc_16bit = tb_crc_16bit ^ 16'h8005;
+        end
+      end
+    end
+    tb_crc_16bit = ~tb_crc_16bit;
+  end
+  endtask
+
+  //set data to send for IN or OUT token
+  task set_senddata_in_out;
+  begin
+    tb_send_data = new [2];
+    calc_crc5(tb_usb_addr, tb_usb_endpoint);
+    tb_send_data = {{tb_usb_addr, tb_usb_endpoint[3]}, {tb_usb_endpoint[2:0], tb_crc_5bit}};
+  end
+  endtask
+
+  //generate random senddata of any size
+  task random_senddata;
+    input numbytes;
+    integer i;
+    integer j;
+    logic [7:0] temp;
+  begin
+    tb_send_data = new [numbytes];
+    for (j = 0; j < numbytes; j = j + 1) begin
+      for (i = 0; i < 8; i = i + 1) begin
+        temp[i] = $urandom_range(1,0);
+      end
+      tb_send_data[j] = temp;
+    end
+  end
+  endtask
+
   //send a byte
   task send_byte;
     input [7:0] data;
@@ -133,54 +207,37 @@ module tb_USB_RX;
   endtask
 
   // send the EOP
-  task send_stop;
+  task send_eop;
   begin
     tb_d_plus = 1'b0;
     tb_d_minus = 1'b0;
     #(BIT_RATE);
     #(BIT_RATE);
     tb_d_plus = 1'b1;
-  end
-  endtask
-
-  //calc 5 bit crc
-  task calc_crc5;
-    input [6:0] addr;
-    input [3:0] endref;
-    logic test;
-    logic [10:0] senddata;
-    integer i;
-  begin
-    tb_crc_5bit = '1;
-    senddata = {addr, endref};
-    for (i = 10; i > -1; i = i + 1)
-    begin
-      test = senddata[i] ^ tb_crc_5bit[4];
-      tb_crc_5bit = tb_crc_5bit << 1;
-      if (test == 1'b1) begin
-        tb_crc_5bit = tb_crc_5bit ^ 5'b00101;
-      end
-    end
-    tb_crc_5bit = ~tb_crc_5bit;
-  end
-  endtask
-
-  task calc_crc16;
-    input [7:0] senddata[];
-  begin
-    
+    #(BIT_RATE);
   end
   endtask
 
   //send packet task
   task send_packet;
     input [3:0] pid;
-    input int datalen;
-    input [7:0] data [63:0];
+    input [7:0] senddata [];
+    integer i;
   begin
     send_byte(8'h01);
     send_byte({pid, ~pid});
-    
+    if (pid == PID_IN || pid == PID_OUT) begin
+      for (i = 0; i < senddata.size(); i = i + 1) begin
+        send_byte(senddata[i]);
+      end
+    end else if (pid == PID_DATA0 || pid == PID_DATA1) begin
+      for (i = 0; i < senddata.size(); i = i + 1) begin
+        send_byte(senddata[i]);
+      end 
+      send_byte(tb_crc_16bit[15:8]);
+      send_byte(tb_crc_16bit[7:0]);
+    end
+    send_eop();
   end
   endtask
 
@@ -193,6 +250,56 @@ module tb_USB_RX;
   tb_n_rst = 1'b1;
   tb_d_plus = 1'b1;
   tb_d_minus = ~tb_d_plus;
+
+  //wait some time before starting first test case
+  #(0.1);
+
+  //*****************************************************************************
+  // Power-on-Reset Test Case
+  //*****************************************************************************
+  tb_test_case = "Power-on-Reset";
+  tb_test_case_num = tb_test_case_num + 1;
+  reset_dut();
+
+  #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
+  // Send IN Token
+  //*****************************************************************************
+  tb_test_case = "IN Token";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  calc_crc5(tb_usb_addr, tb_usb_endpoint);
+  set_senddata_in_out();
+  send_packet(PID_IN, tb_send_data);
+
+  #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
+  // Send OUT Token
+  //*****************************************************************************
+  tb_test_case = "OUT Token";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  calc_crc5(tb_usb_addr, tb_usb_endpoint);
+  set_senddata_in_out();
+  send_packet(PID_OUT, tb_send_data);
+
+  #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
+  // Send DATA0 Token
+  //*****************************************************************************
+  tb_test_case = "OUT Token";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  tb_send_data = new [5];
+  random_senddata(2);
+  tb_send_data[0] = 8'b11111111;
+  calc_crc16(tb_send_data);
+  send_packet(PID_DATA0, tb_send_data);
+
+  #(CLK_PERIOD * 10);
   end
 
 endmodule

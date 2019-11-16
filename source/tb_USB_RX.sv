@@ -19,12 +19,14 @@ module tb_USB_RX;
   localparam DATA_WIDTH = 8;
 
   //Teseting control signals
-  string tb_test_case;
-  integer tb_test_case_num;
+  string                        tb_test_case;
+  integer                       tb_test_case_num;
   logic [(RX_PACKET_WIDTH-1):0] tb_expected_RX_packet;
-  logic tb_expected_store_RX_packet_data;
-  logic [(DATA_WIDTH-1):0] tb_expected_RX_packet_data;
-  logic tb_check;
+  logic                         tb_expected_store_RX_packet_data;
+  logic [(DATA_WIDTH-1):0]      tb_expected_RX_packet_data;
+  logic                         tb_check;
+  integer                       tb_numbyte = 0;
+  logic [(DATA_WIDTH-1):0]      tb_byte_out; 
   
   //PID values
   localparam PID_OUT   = 4'b0001;
@@ -62,12 +64,12 @@ module tb_USB_RX;
 
   //send packet task signals
   localparam BIT_RATE = CLK_PERIOD * 100.0 / 12;
-  logic [5:0] tb_prev_vals;
-  logic [4:0] tb_crc_5bit;
+  logic [5:0]  tb_prev_vals;
+  logic [4:0]  tb_crc_5bit;
   logic [15:0] tb_crc_16bit;
-  logic [6:0] tb_usb_addr = 7'd0;
-  logic [3:0] tb_usb_endpoint = 4'd0;
-  logic [7:0] tb_send_data [];
+  logic [6:0]  tb_usb_addr = 7'd0;
+  logic [3:0]  tb_usb_endpoint = 4'd0;
+  logic [7:0]  tb_send_data [];
 
   //Clock generation Block
   always begin
@@ -120,7 +122,7 @@ module tb_USB_RX;
   begin
     tb_crc_5bit = '1;
     senddata = {addr, endref};
-    for (i = 10; i > -1; i = i + 1)
+    for (i = 10; i > -1; i = i - 1)
     begin
       test = senddata[i] ^ tb_crc_5bit[4];
       tb_crc_5bit = tb_crc_5bit << 1;
@@ -166,7 +168,7 @@ module tb_USB_RX;
 
   //generate random senddata of any size
   task random_senddata;
-    input numbytes;
+    input integer numbytes;
     integer i;
     integer j;
     logic [7:0] temp;
@@ -186,8 +188,8 @@ module tb_USB_RX;
     input [7:0] data;
     integer i;
   begin
-    @(negedge tb_clk);
-
+    tb_numbyte = tb_numbyte + 1;
+    tb_byte_out = data;
     for (i = 7; i >= 0; i = i - 1)
     begin
       if (tb_prev_vals == 6'h3f) begin
@@ -224,6 +226,8 @@ module tb_USB_RX;
     input [7:0] senddata [];
     integer i;
   begin
+    tb_numbyte = 0;
+    tb_prev_vals = '0;
     send_byte(8'h01);
     send_byte({pid, ~pid});
     if (pid == PID_IN || pid == PID_OUT) begin
@@ -237,6 +241,8 @@ module tb_USB_RX;
       send_byte(tb_crc_16bit[15:8]);
       send_byte(tb_crc_16bit[7:0]);
     end
+    tb_numbyte = 0;
+    tb_prev_vals = '0;
     send_eop();
   end
   endtask
@@ -250,6 +256,15 @@ module tb_USB_RX;
   tb_n_rst = 1'b1;
   tb_d_plus = 1'b1;
   tb_d_minus = ~tb_d_plus;
+  //initialize crc
+  tb_crc_5bit = '0;
+  tb_crc_16bit = '0;
+  //inialize bit stuffing setup
+  tb_prev_vals = '0;
+  //inialize expected vals
+  tb_expected_RX_packet = '0;
+  tb_expected_store_RX_packet_data = '0;
+  tb_expected_RX_packet_data = '0;
 
   //wait some time before starting first test case
   #(0.1);
@@ -261,6 +276,7 @@ module tb_USB_RX;
   tb_test_case_num = tb_test_case_num + 1;
   reset_dut();
 
+  //spacing of test cases
   #(CLK_PERIOD * 10);
 
   //*****************************************************************************
@@ -269,8 +285,8 @@ module tb_USB_RX;
   tb_test_case = "IN Token";
   tb_test_case_num = tb_test_case_num + 1;
 
-  calc_crc5(tb_usb_addr, tb_usb_endpoint);
-  set_senddata_in_out();
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  set_senddata_in_out();                   //sets tb_send_data to right values
   send_packet(PID_IN, tb_send_data);
 
   #(CLK_PERIOD * 10);
@@ -281,25 +297,45 @@ module tb_USB_RX;
   tb_test_case = "OUT Token";
   tb_test_case_num = tb_test_case_num + 1;
 
-  calc_crc5(tb_usb_addr, tb_usb_endpoint);
-  set_senddata_in_out();
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  set_senddata_in_out();                   //sets tb_send_data to right values
   send_packet(PID_OUT, tb_send_data);
 
+  //spacing of test cases
   #(CLK_PERIOD * 10);
 
   //*****************************************************************************
-  // Send DATA0 Token
+  // Send DATA0
   //*****************************************************************************
-  tb_test_case = "OUT Token";
+  tb_test_case = "DATA0 PID";
   tb_test_case_num = tb_test_case_num + 1;
 
   tb_send_data = new [5];
-  random_senddata(2);
+  random_senddata(2);                  //puts two random bytes in tb_send_data
   tb_send_data[0] = 8'b11111111;
-  calc_crc16(tb_send_data);
+  calc_crc16(tb_send_data);            //sets tb_crc_16bit variable
   send_packet(PID_DATA0, tb_send_data);
 
+  //spacing of test cases
   #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
+  // Send ACK
+  //*****************************************************************************
+  tb_test_case = "ACK PID";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  tb_send_data.delete();
+  send_packet(PID_ACK, tb_send_data);
+
+  //spacing of test cases
+  #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
+  // END
+  //*****************************************************************************
+  tb_test_case = "END";
+  tb_test_case_num = tb_test_case_num + 1;
   end
 
 endmodule

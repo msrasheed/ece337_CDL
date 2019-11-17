@@ -96,16 +96,14 @@ module tb_data_buffer();
    //add task for sending multiple bytes to buffer
    task rx_send_bytes;
       input integer num_bytes;
-      input logic [(num_bytes * 8 - 1):0] data;
+      input logic [0:63][7:0] data; //not sure if this will work with the 63 there if you call it without the full 64 bytes
       integer 				  i;
-      integer 				  top_of_byte;
 
       begin
 	 for (i = 0; i < num_bytes; i++)
 	   begin
-	      top_of_byte = ((i + 1) * 8) - 1;
-	      rx_send_byte(data[top_of_byte: top_of_byte - 7]);
-        #0.1 //not sure if this is needed, might need to adjust
+	      rx_send_byte(data[i][7:0]);
+      		#0.1; //not sure if this is needed, might need to adjust
 	   end
       end
    endtask // rx_send_bytes
@@ -151,7 +149,7 @@ module tb_data_buffer();
       input logic [31:0] tx_data;
       begin
 	 tb_buffer_reserved = 1'b1;
-	 case(data_size)
+	 case(num_bytes)
 	   2'd0: begin //1 byte
 	      tb_store_tx_data = {24'd0, tx_data[7:0]};
 	   end
@@ -174,13 +172,13 @@ module tb_data_buffer();
    task request_tx_packet;
       input logic [7:0] expected_byte;
       begin
-	 tb_get_tx_data_packet = 1'b1;
+	 tb_get_tx_packet_data = 1'b1;
 	 @(posedge tb_clk);//wait a clock cycle after asserting
 	 assert(expected_byte == tb_tx_packet_data)
 	   $info("correct tx_packet_data sent to usb tx");
 	 else
 	   $error("incorrect tx_packet_data sent to usb tx");
-	 tb_get_tx_data_packet = 1'b0;
+	 tb_get_tx_packet_data = 1'b0;
       end
    endtask
 
@@ -204,8 +202,8 @@ module tb_data_buffer();
      tb_store_rx_packet_data = 1'b0;
      tb_get_rx_data = 1'b0;
      tb_store_tx_data = 1'b0;
-     tb_get_tx_data_packet = 1'b0;
-     buffer_reserved = 1'b0;
+     tb_get_tx_packet_data= 1'b0;
+     tb_buffer_reserved = 1'b0;
 
      //
      //Reset dut then write 4 bytes of data to buffer from UBS RX

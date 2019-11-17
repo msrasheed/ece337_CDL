@@ -194,7 +194,6 @@ module tb_data_buffer();
       end
    endtask // check_buffer_occupancy
 
-   //TODO write test cases and run tasks to check operation
    initial begin
      //set inputs to idle values
      tb_n_rst = 1'b1;

@@ -63,19 +63,18 @@ module protocol_controller
 	
 	// Initializations for the PID from the RX
 	localparam RX_IDLE = 3'b000;
-	localparam RX_IN   = 3'b001;
+	localparam RX_DATA   = 3'b001;
 	localparam RX_OUT  = 3'b010;
-	localparam RX_DATA = 3'b011;
-	localparam RX_GOOD = 3'b100;
-	localparam RX_BAD  = 3'b101;
-	localparam RX_ACK  = 3'b110;
-	localparam RX_NCK  = 3'b111;
+	localparam RX_IN = 3'b011;
+	localparam RX_ACK = 3'b100;
+	localparam RX_NAK = 3'b101;
+	localparam RX_BAD  = 3'b110;
 
 	// Initializations for the PID to the TX
 	localparam TX_IDLE = 2'b00;
 	localparam TX_DATA = 2'b01;
 	localparam TX_ACK = 2'b10;
-	localparam TX_NCK = 2'b11;
+	localparam TX_NAK = 2'b11;
 
 	// Sequential Block for the Current State Logic
 	always_ff @ (posedge clk, negedge n_rst) 
@@ -95,17 +94,20 @@ module protocol_controller
 					if (rx_packet == RX_OUT)		// Host to Endpoint Transfer
 						NS = RX_ACTIVE;			
 					else if (rx_packet == RX_IN)		// Data Buffer is Empty so Error
-						NS = EH_ERROR_START;		
+						NS = EH_ERROR_START;	
+					else if (rx_packet == RX_BAD)
+						NS = EH_ERROR_START;	
 					else if (buffer_reserved == 1'b1)	// Endpoint to Host Transfer
 						NS = AHB_STORE;
 				end
 			
 			// Host to Endpoint
-			RX_ACTIVE:	begin
-						NS = HE_DATA;			// Set RX_Transfer_Active
+			RX_ACTIVE:	begin	
+						if (rx_packet == RX_DATA)
+							NS = HE_DATA;		// Set RX_Transfer_Active
 					end
 			HE_DATA:	begin
-						if (rx_packet == RX_GOOD)
+						if (rx_packet == IDLE)
 							NS = HE_GOOD;		// Host packet is good
 						else if (rx_packet == RX_BAD)
 							NS = HE_BAD;		// Host packet is bad
@@ -131,14 +133,14 @@ module protocol_controller
 
 			// Host to Endpoint Data Still in Data Buffer
 			HE_ERROR_START:	begin
-						NS = HE_TX_ERROR;		// Start of sending back a NCK
+						NS = HE_TX_ERROR;		// Start of sending back a NAK
 					end
 			HE_TX_ERROR:	begin
 						NS = HE_PACKET_ERROR_WAIT;	// Wait till the TX is done sending packet
 					end
 			HE_PACKET_ERROR_WAIT:	begin
 							if (tx_done == 1'b1)
-								NS = DATA_BUFFER_WAIT;	// Go back to wait for the data buffer to be empty
+								NS = DATA_BUFFER_WAIT;	// Go back to wait for the data buffer to be empty since data from the Host may still exists
 						end
 			
 			// Endpoint to Host
@@ -147,7 +149,7 @@ module protocol_controller
 							NS = TX_ACTIVE;			// Can send data to the Host
 						else if (rx_packet == RX_OUT)
 							NS = EH_ERROR_START;		// Host tried to do something while AHB not done
-						else if ( (tx_packet_data_size != buffer_occupancy) && (rx_packet == RX_OUT) )
+						else if ( (tx_packet_data_size != buffer_occupancy) && (rx_packet == RX_IN) )
 							NS = EH_ERROR_START;		// Host tried to do something while AHB not done
 					end
 			TX_ACTIVE:	begin
@@ -164,7 +166,7 @@ module protocol_controller
 			EH_DONE:	begin
 						if (rx_packet == RX_ACK)
 							NS = IDLE;
-						else if (rx_packet == RX_NCK)
+						else if (rx_packet == RX_NAK)
 							NS = TX_ERROR_SET;
 					end
 
@@ -271,11 +273,12 @@ module protocol_controller
 			// Host to Endpoint Data Still in Data Buffer
 			HE_ERROR_START:	begin
 						d_mode_next = 1'b1;
+						tx_transfer_active_next = 1'b1;
 					end
 			HE_TX_ERROR:	begin
 						tx_transfer_active_next = 1'b1;
 						d_mode_next = 1'b1;
-						tx_packet_next = TX_NCK;
+						tx_packet_next = TX_NAK;
 						rx_error_next = 1'b1;
 					end
 			HE_PACKET_ERROR_WAIT:	begin
@@ -324,7 +327,7 @@ module protocol_controller
 			EH_TX_ERROR:	begin
 						tx_transfer_active_next = 1'b1;
 						d_mode_next = 1'b1;
-						tx_packet_next = TX_NCK;
+						tx_packet_next = TX_NAK;
 						rx_error_next = 1'b1;		
 					end
 			EH_PACKET_ERROR_WAIT:	begin

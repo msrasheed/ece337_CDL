@@ -100,8 +100,12 @@ module data_buffer
 	begin : RX_DATA_AND_TX_DATA_OUTPUT_LOGIC
 		tx_packet_data = 8'b0;
 		rx_data = 32'b0;
-		if (get_rx_data == 1'b1)
-			rx_data = mem[read_pointer + 3:read_pointer];
+		if (get_rx_data == 1'b1) begin
+			rx_data[7:0] = mem[read_pointer];
+			rx_data[15:8] = mem[(read_pointer + 1)];
+			rx_data[23:16] = mem[(read_pointer + 2)];
+			rx_data[31:24] = mem[(read_pointer + 3)];
+		end
 		if (get_tx_packet_data == 1'b1)
 			tx_packet_data = read_out[read_pointer];
 	end
@@ -110,7 +114,7 @@ module data_buffer
 	always_ff @ (posedge clk, negedge n_rst)
 	begin : MEM_BLOCK_LOGIC
 		if (n_rst == 1'b0)
-			mem[63:0] <= 8'b0;
+			mem <= '{64{8'b0}};
 		else
 			mem[63:0] <= next_mem[63:0];
 	end
@@ -124,9 +128,21 @@ module data_buffer
 		else if (store_tx_data == 1'b1 && buffer_reserved == 1'b0) begin
 			case(data_size)
 				2'd0: next_mem[write_pointer] = tx_data[7:0];
-				2'd1: next_mem[(write_pointer + 1) : write_pointer] = tx_data[15:0];
-				2'd2: next_mem[(write_pointer + 2) : write_pointer] = tx_data[23:0];
-				2'd3: next_mem[(write_pointer + 3) : write_pointer] = tx_data[31:0];
+				2'd1: begin 
+					next_mem[write_pointer] = tx_data[7:0];
+					next_mem[(write_pointer + 1)] = tx_data[15:8];
+				      end
+				2'd2: begin
+					next_mem[write_pointer] = tx_data[7:0];
+					next_mem[(write_pointer + 1)] = tx_data[15:8];
+					next_mem[(write_pointer + 2)] = tx_data[23:16];
+				      end
+				2'd3: begin
+					next_mem[write_pointer] = tx_data[7:0];
+					next_mem[(write_pointer + 1)] = tx_data[15:8];
+					next_mem[(write_pointer + 2)] = tx_data[23:16];
+					next_mem[(write_pointer + 3)] = tx_data[31:24];
+				      end
 			endcase
 		end
 	end

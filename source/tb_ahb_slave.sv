@@ -16,7 +16,7 @@ localparam BUS_DELAY  = 800ps; // Based on FF propagation delay
 
 // Sizing related constants
 localparam DATA_WIDTH      = 4;
-localparam ADDR_WIDTH      = 8;
+localparam ADDR_WIDTH      = 7;
 localparam DATA_WIDTH_BITS = DATA_WIDTH * 8;
 localparam DATA_MAX_BIT    = DATA_WIDTH_BITS - 1;
 localparam ADDR_MAX_BIT    = ADDR_WIDTH - 1;
@@ -143,7 +143,7 @@ end
 //*****************************************************************************
 ahb_lite_bus_cdl 
               #(  .DATA_WIDTH(4),
-                  .ADDR_WIDTH(8))
+                  .ADDR_WIDTH(7))
               BFM(.clk(tb_clk),
                   // Testing setup signals
                   .enqueue_transaction(tb_enqueue_transaction),
@@ -202,7 +202,7 @@ ahb_slave DUT ( .clk(tb_clk), .n_rst(tb_n_rst),
 		        .buffer_occupancy(tb_buffer_occupancy),
 		        .rx_data(tb_rx_data),
 		        .buffer_reserved(tb_buffer_reserved),
-		        .tx_packet_data_size(tx_packet_data_size),
+		        .tx_packet_data_size(tb_tx_packet_data_size),
 		        .get_rx_data(tb_get_rx_data),
 		        .store_tx_data(tb_store_tx_data),
 		        .tx_data(tb_tx_data),
@@ -458,7 +458,7 @@ initial begin
   // to DEC address 64, with the value as 32'd1000, SINGLE BURST (3'd0) as HBURST Code
   // with no expected error, and the value of HSIZE as 2.
 
-  enqueue_transaction(1'b1, 1'b1, 8'd64, tb_test_data, BURST_SINGLE, 1'b0, 2'd2);   
+  enqueue_transaction(1'b1, 1'b1, 7'd64, tb_test_data, BURST_SINGLE, 1'b0, 2'd2);   
   
   // Run the transactions via the model
   execute_transactions(1);
@@ -477,9 +477,9 @@ initial begin
   // Enqueue the needed transactions
   tb_test_data = '{32'hADAD8000};
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 8'd70, tb_test_data, BURST_SINGLE, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'd70, tb_test_data, BURST_SINGLE, 1'b0, 2'd2);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 8'd70, tb_test_data, BURST_SINGLE, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'd70, tb_test_data, BURST_SINGLE, 1'b0, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(2);
@@ -502,9 +502,9 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 8'd64, tb_test_data, BURST_INCR4, 1'b0, 2'd2);  // 4 WRITES
+  enqueue_transaction(1'b1, 1'b1, 7'd64, tb_test_data, BURST_INCR4, 1'b0, 2'd2);  // 4 WRITES
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 8'd64, tb_test_data, BURST_INCR4, 1'b0, 2'd2);  // 4 READS
+  enqueue_transaction(1'b1, 1'b0, 7'd64, tb_test_data, BURST_INCR4, 1'b0, 2'd2);  // 4 READS
   
   // Run the transactions via the model
   execute_transactions(8);
@@ -526,9 +526,9 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 8'd64, tb_test_data, BURST_INCR8, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'd64, tb_test_data, BURST_INCR8, 1'b0, 2'd2);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 8'd64, tb_test_data, BURST_INCR8, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'd64, tb_test_data, BURST_INCR8, 1'b0, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(16);
@@ -550,9 +550,9 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 8'd64, tb_test_data, BURST_INCR16, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'd64, tb_test_data, BURST_INCR16, 1'b0, 2'd2);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 8'd64, tb_test_data, BURST_INCR16, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'd64, tb_test_data, BURST_INCR16, 1'b0, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(32);
@@ -574,9 +574,9 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 8'd68, tb_test_data, BURST_WRAP4, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'd68, tb_test_data, BURST_WRAP4, 1'b0, 2'd2);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 8'd68, tb_test_data, BURST_WRAP4, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'd68, tb_test_data, BURST_WRAP4, 1'b0, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(8);
@@ -598,9 +598,9 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 8'd68, tb_test_data, BURST_WRAP8, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'd68, tb_test_data, BURST_WRAP8, 1'b0, 2'd2);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 8'd68, tb_test_data, BURST_WRAP8, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'd68, tb_test_data, BURST_WRAP8, 1'b0, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(16);
@@ -622,9 +622,9 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 8'd68, tb_test_data, BURST_WRAP16, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'd68, tb_test_data, BURST_WRAP16, 1'b0, 2'd2);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 8'd68, tb_test_data, BURST_WRAP16, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'd68, tb_test_data, BURST_WRAP16, 1'b0, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(32);
@@ -647,9 +647,9 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 8'd64, tb_test_data, BURST_INCR, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'd64, tb_test_data, BURST_INCR, 1'b0, 2'd2);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 8'd64, tb_test_data, BURST_INCR, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'd64, tb_test_data, BURST_INCR, 1'b0, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(14);
@@ -667,7 +667,7 @@ initial begin
 
   // Enqueue the needed transactions
   tb_test_data = '{32'd1000}; 
-  enqueue_transaction(1'b1, 1'b1, 8'd32, tb_test_data, BURST_SINGLE, 1'b1, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'd32, tb_test_data, BURST_SINGLE, 1'b1, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(1);
@@ -685,7 +685,7 @@ initial begin
 
   // Enqueue the needed transactions
   tb_test_data = '{32'd1000}; 
-  enqueue_transaction(1'b1, 1'b0, 8'd128, tb_test_data, BURST_SINGLE, 1'b1, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'd127, tb_test_data, BURST_SINGLE, 1'b1, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(1);
@@ -708,7 +708,7 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 8'd32, tb_test_data, BURST_INCR4, 1'b1, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'd32, tb_test_data, BURST_INCR4, 1'b1, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(8);
@@ -730,7 +730,7 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b0, 8'd128, tb_test_data, BURST_INCR4, 1'b1, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'd127, tb_test_data, BURST_INCR4, 1'b1, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(8);

@@ -1,3 +1,10 @@
+// $Id: $
+// File name:   tb_data_buffer.sv
+// Created:     11/17/2019
+// Author:      Melissa Nguyen
+// Lab Section: 337-04
+// Version:     1.0  Initial Design Entry
+// Description: Test Bench for Data Buffer
 //tb_data_buffer.sv
 
 `timescale 1ns / 10ps
@@ -84,6 +91,7 @@ module tb_data_buffer();
    task rx_send_byte;
       input logic [7:0] rx_byte;
       begin
+	@(posedge tb_clk);
 	 tb_rx_packet_data = rx_byte;
 	 tb_store_rx_packet_data = 1'b1;
 
@@ -96,7 +104,7 @@ module tb_data_buffer();
    //add task for sending multiple bytes to buffer
    task rx_send_bytes;
       input integer num_bytes;
-      input logic [0:63][7:0] data; //not sure if this will work with the 63 there if you call it without the full 64 bytes
+      input logic [63:0][7:0] data; //not sure if this will work with the 63 there if you call it without the full 64 bytes
       integer 				  i;
 
       begin
@@ -113,33 +121,39 @@ module tb_data_buffer();
       input logic [1:0] data_size;
       input logic [31:0] expected_data;
       begin
+	 @(posedge tb_clk);
 	 tb_get_rx_data = 1'b1;
+	 @(posedge tb_clk);
+	 #0.1
 	 case(data_size)
 	   2'd0: begin //1 byte
 	      assert({24'd0, expected_data[7:0]} == tb_rx_data)
 		$info("correct RX data for read 1 byte from data buffer");
 	      else
-		$error("correct RX data for read 1 byte from data buffer");
+		$error("Incorrect RX data for read 1 byte from data buffer");
 	   end
 	   2'd1: begin //2 byte
 	      assert({16'd0, expected_data[15:0]} == tb_rx_data)
 		$info("correct RX data for read 2 bytes from data buffer");
 	      else
-		$error("correct RX data for read 2 bytes from data buffer");
+		$error("Incorrect RX data for read 2 bytes from data buffer");
 	   end
 	   2'd2: begin //3 byte
 	      assert({8'd0, expected_data[23:0]} == tb_rx_data)
 		$info("correct RX data for read 3 bytes from data buffer");
 	      else
-		$error("correct RX data for read 3 bytes from data buffer");
+		$error("Incorrect RX data for read 3 bytes from data buffer");
 	   end
 	   2'd3: begin //4 byte
 	      assert(expected_data == tb_rx_data)
 		$info("correct RX data for read 4 bytes from data buffer");
 	      else
-		$error("correct RX data for read 4 bytes from data buffer");
+		$error("Incorrect RX data for read 4 bytes from data buffer");
 	   end
 	 endcase // case (data_size)
+
+	@(posedge tb_clk);
+	tb_get_rx_data = 1'b0;
       end
    endtask // slave_request_data
 
@@ -148,23 +162,29 @@ module tb_data_buffer();
       input logic [1:0] num_bytes;
       input logic [31:0] tx_data;
       begin
+	 @(posedge tb_clk);
 	 tb_buffer_reserved = 1'b1;
+	 tb_store_tx_data = 1'b1;
+	 tb_data_size = num_bytes;
 	 case(num_bytes)
 	   2'd0: begin //1 byte
-	      tb_store_tx_data = {24'd0, tx_data[7:0]};
+	      tb_tx_data = {24'd0, tx_data[7:0]};
 	   end
 	   2'd1: begin //2 byte
-	      tb_store_tx_data = {16'd0, tx_data[15:0]};
+	      tb_tx_data = {16'd0, tx_data[15:0]};
 
 	   end
 	   2'd2: begin //3 byte
-	      tb_store_tx_data = {8'd0, tx_data[23:0]};
+	      tb_tx_data = {8'd0, tx_data[23:0]};
 
 	   end
 	   2'd3: begin //4 byte
-	      tb_store_tx_data = tx_data;
+	      tb_tx_data = tx_data;
 	   end
 	 endcase // case (data_size)
+
+	@(posedge tb_clk)
+	tb_store_tx_data = 1'b0;
       end
    endtask // send_tx_data
 
@@ -172,8 +192,10 @@ module tb_data_buffer();
    task request_tx_packet;
       input logic [7:0] expected_byte;
       begin
+	 @(posedge tb_clk);//wait a clock cycle after asserting
 	 tb_get_tx_packet_data = 1'b1;
 	 @(posedge tb_clk);//wait a clock cycle after asserting
+	 #0.1
 	 assert(expected_byte == tb_tx_packet_data)
 	   $info("correct tx_packet_data sent to usb tx");
 	 else
@@ -187,6 +209,7 @@ module tb_data_buffer();
    task check_buffer_occupancy;
       input logic [6:0] expected_occupancy;
       begin
+	 #0.1
 	 assert(tb_buffer_occupancy == expected_occupancy)
 	   $info("correct output for buffer occupancy");
 	 else

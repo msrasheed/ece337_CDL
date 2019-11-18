@@ -40,6 +40,8 @@ module tb_protocol_controller();
   reg [1:0] tb_tx_packet;
   reg tb_d_mode;
 
+  string tb_test_state;
+
 
 
   //*****************************************************************************
@@ -183,9 +185,160 @@ module tb_protocol_controller();
     //
     //Reset DUT then follow RX States for out token
     //
-    //initialize expected values for check output function
-    expected_rx_data_ready = 1'b0;
+    //initialize expected values for  //I added these for readability
     expected_rx_transfer_active = 1'b0;
+    expected_rx_error = 1'b0;
+    expected_tx_transfer_active = 1'b0;
+    expected_tx_error = 1'b0;
+    expected_clear = 1'b0;
+    expected_tx_packet = TX_IDLE;
+    expected_d_mode = 1'b0;
+
+    //
+    //Follow main RX packet States
+    //
+    tb_rx_packet = RX_IDLE;
+    reset_dut();
+    #0.1;
+    check_outputs(expected_rx_data_ready, //check outputs after reset
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode);
+    //advance to RX_Active state
+    expected_rx_transfer_active = 1'b1;
+    tb_rx_packet = RX_OUT;
+    tb_test_state = "After reset";
+    @(posedge tb_clk); //let state machine shift
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //advance to HE_Data state
+    tb_rx_packet = RX_DATA;
+    tb_test_state = "HE_Data";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //advance to HE_Good state
+    expected_rx_transfer_active = 1'b0;
+    expected_rx_data_ready = 1'b1;
+    expected_d_mode = 1'b1;
+    expected_tx_transfer_active = 1'b1;
+    tb_rx_packet = RX_IDLE;
+    tb_test_state = "HE_Good";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //advance to Send_ACK state
+    expected_rx_data_ready = 1'b0;
+    expected_tx_packet = TX_ACK;
+    tb_test_state = "Send_ACK";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //advance to HE_PACKET_DONE_WAIT state
+    expected_tx_packet = TX_IDLE;
+    tb_test_state = "HE_Packet_Done_Wait";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //check that HE_Packet_Done_Wait state is held until TX_Done
+    tb_test_state = "Hold in HE_Packet_Done_Wait";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //advacne to DATA_BUFFER_WAIT
+    expected_tx_transfer_active = 1'b0;
+    tb_buffer_occupancy = 7'd1; //set this to make sure state is held until buffer occupancy reaches 0
+    tb_tx_done = 1'b1;
+    tb_test_state = "Data_Buffer_Wait";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //check that state doesnt advance until buffer occupancy is 0
+    tb_test_state = "Hold in Data_Buffer_Wait";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //TODO add path for error states
+    //advance to IDLE
+    tb_buffer_occupancy = 7'd0;
+    tb_test_state = "IDLE";
+    @(posedge tb_clk);
+    //need to check states on wave forms since same outputs expected for Data_buffer_wait and IDLE
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //END RX_OUT standard operation test cases
+
+    //
+    //Tests for standard operation EH States
+    //
+    expected_rx_transfer_active = 1'b0; //reset expected values
     expected_rx_error = 1'b0;
     expected_tx_transfer_active = 1'b0;
     expected_tx_error = 1'b0;
@@ -195,13 +348,129 @@ module tb_protocol_controller();
 
     reset_dut();
     #0.1;
-    tb_rx_packet = RX_OUT;
-    //TODO check updated state diagram and follow state each possible path
-
-
-
-
-
-
-
+    //advance to AHB_STORE
+    tb_buffer_reserved = 1'b1;
+    tb_test_state = "AHB_STORE";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //check that AHB_Store is held properly
+    tb_tx_packet_data_size = 7'd5;
+    tb_buffer_occupancy = 7'd4;
+    tb_test_state = "hold in AHB_STORE";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //advance to TX_active
+    tb_tx_packet_data_size = 7'd5;
+    tb_buffer_occupancy = 7'd5;
+    tb_rx_packet = RX_IN;
+    expected_tx_transfer_active = 1'b1;
+    expected_tx_packet = TX_DATA;
+    expected_d_mode = 1'b1;
+    tb_test_state = "TX_active";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //advance to EH_Data
+    tb_rx_packet = RX_IDLE;
+    expected_tx_packet = TX_IDLE; //is this correct?
+    tb_test_state = "EH_Data";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //check that EH_Data is held until buffer is Empty
+    tb_test_state = "Hold in EH_Data";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //advance to EH_Packet_Done_Wait
+    tb_buffer_occupancy = 7'd0;
+    tb_tx_done = 1'b0;
+    tb_test_state = "EH_Packet_Done_Wait";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //check that EH_Packet_Done_Wait state is held
+    tb_test_state = "Hold in EH_Packet_Done_Wait";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //advance to EH_Done
+    expected_tx_transfer_active = 1'b0;
+    expected_d_mode = 1'b0;
+    tb_test_state = "EH_Done";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+    //advance to IDLE
+    tb_rx_packet = RX_IDLE;
+    tb_test_state = "IDLE";
+    @(posedge tb_clk);
+    check_outputs(expected_rx_data_ready,
+                  expected_rx_transfer_active,
+                  expected_rx_error,
+                  expected_tx_transfer_active,
+                  expected_tx_error,
+                  expected_clear,
+                  expected_tx_packet,
+                  expected_d_mode,
+                  tb_test_state);
+  end
 endmodule

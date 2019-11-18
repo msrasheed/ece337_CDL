@@ -16,7 +16,7 @@ include /home/ecegrid/a/ece337/Course_Prod/course_make_vars
 # (do not include the source folder in the name)
 # NOTE: YOU WILL NEED TO SET THIS VARIABLE'S VALUE WHEN WORKING WITH HEIRARCHICAL DESIGNS
 # AND THE AUTOMATED GRADING SYSTEM
-COMPONENT_FILES	:= crc_5bit_chk.sv crc_16bit_chk.sv flex_counter.sv flex_stp_sr.sv RX_bit_stuff_detector.sv RX_byte_counter.sv RX_ControlFSM.sv RX_decoder.sv RX_SR.sv RX_timer.sv 
+COMPONENT_FILES	:= crc_5bit_chk.sv crc_16bit_chk.sv flex_counter.sv flex_stp_sr.sv RX_bit_stuff_detector.sv RX_byte_counter.sv RX_ControlFSM.sv RX_decoder.sv RX_SR.sv RX_timer.sv
 
 # Specify the name of the top level file (do not include the source folder in the name)
 # NOTE: YOU WILL NEED TO SET THIS VARIABLE'S VALUE WHEN WORKING WITH HEIRARCHICAL DESIGNS

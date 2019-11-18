@@ -10,7 +10,8 @@ module RX_ControlFSM (clk,
                       sr_val,
                       en_buffer,
                       RX_PID,
-                      clear_crc);
+                      clear_crc,
+		      clear_byte_count);
 
   localparam PACKET_IDLE = 3'd0;//need to encode packet types
   localparam PACKET_DATA = 3'd1;
@@ -37,7 +38,8 @@ module RX_ControlFSM (clk,
   input wire pass_16_bit;
   input wire byte_done;
   input wire [15:0] sr_val;
-  output reg en_buffer;
+   output reg 	    clear_byte_count;
+   output reg 	    en_buffer;
   output reg [2:0] RX_PID;
   output reg clear_crc;
 
@@ -56,25 +58,22 @@ module RX_ControlFSM (clk,
     clear_crc = 1'b0;
     next_state = state;
     next_PID = PID;
-
+     clear_byte_count = 1'b0;
+     
     case(state)
     IDLE: begin
       next_RX_PID = PACKET_IDLE;
       if (sr_val[7:0] == 8'b00000001) begin
-        next_state = PIDWAIT;
+        next_state = SYNC;
       end
     end
 
-/*
-//I dont think this is needed anymore 
+
      SYNC: begin
-      if (sr_val[7:0] == 8'b00000001) begin
-        next_state = PIDWAIT;
-      end else begin
-        next_state = IDLE;
-      end
-    end
-*/
+	clear_byte_count = 1'b1;
+	next_state = PIDWAIT;
+     end
+
     PIDWAIT: begin
       if (byte_done == 1'b1) begin
         next_state = CHECKPID;

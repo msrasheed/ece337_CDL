@@ -203,12 +203,12 @@ module tb_protocol_controller();
                   expected_tx_packet,
                   expected_d_mode,
 		  tb_test_state);
- //    @(posedge tb_clk);
+   //  @(posedge tb_clk);
      
     //advance to RX_Active state
     tb_rx_packet = RX_OUT;
      expected_rx_transfer_active = 1'b1;
-    tb_test_state = "After reset";
+    tb_test_state = "RX_Active";
     @(posedge tb_clk); //let state machine shift
     check_outputs(expected_rx_data_ready,
                   expected_rx_transfer_active,
@@ -222,7 +222,8 @@ module tb_protocol_controller();
     //advance to HE_Data state
     tb_rx_packet = RX_DATA;
     tb_test_state = "HE_Data";
-    @(posedge tb_clk);
+     @(posedge tb_clk);
+     #0.1;
     check_outputs(expected_rx_data_ready,
                   expected_rx_transfer_active,
                   expected_rx_error,

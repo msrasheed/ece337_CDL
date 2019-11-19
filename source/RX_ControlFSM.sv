@@ -84,12 +84,15 @@ module RX_ControlFSM (clk,
       if (sr_val[7:0] == PID_IN) begin
         next_state = TOKEN;
         next_PID = PACKET_IN;
+	 clear_crc = 1'b1;
       end else if (sr_val[7:0] == PID_OUT) begin
         next_state = TOKEN;
         next_PID = PACKET_OUT;
+	 clear_crc = 1'b1;
       end else if ((sr_val[7:0] == PID_DATA0) || (sr_val[7:0] == PID_DATA1)) begin
         next_state = DATA;
         next_PID = PACKET_DATA;
+	 clear_crc = 1'b1;
       end else if (sr_val[7:0] == PID_ACK) begin
         next_state = ACK;
         next_PID = PACKET_ACK;
@@ -103,7 +106,7 @@ module RX_ControlFSM (clk,
     end
 
     TOKEN: begin
-      clear_crc = 1'b1;
+//      clear_crc = 1'b1;
       if (byte_done == 1'b1) begin
         next_state = READTOKEN;
       end
@@ -141,7 +144,7 @@ module RX_ControlFSM (clk,
 
     DATA: begin
       next_RX_PID = PACKET_DATA;
-      clear_crc = 1'b1;
+//      clear_crc = 1'b1;
       if (byte_done == 1'b1) begin
         next_state = READDATA;
       end

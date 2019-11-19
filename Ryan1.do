@@ -12,6 +12,7 @@ add wave -noupdate /tb_USB_RX/rxmod/timer/en_sample
 add wave -noupdate /tb_USB_RX/rxmod/shift_register/RX_packet_data
 add wave -noupdate /tb_USB_RX/rxmod/byte_counter/byte_done
 add wave -noupdate /tb_USB_RX/rxmod/controller/pass_5_bit
+add wave -noupdate /tb_USB_RX/rxmod/controller/clear_crc
 add wave -noupdate /tb_USB_RX/rxmod/controller/state
 add wave -noupdate /tb_USB_RX/tb_byte_out
 add wave -noupdate /tb_USB_RX/tb_numbyte
@@ -24,7 +25,7 @@ add wave -noupdate -divider {BSD signals}
 add wave -noupdate /tb_USB_RX/rxmod/bsd/state
 add wave -noupdate /tb_USB_RX/rxmod/bsd/ignore_bit
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {2139337 ps} 0}
+WaveRestoreCursors {{Cursor 1} {12068331 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 205
 configure wave -valuecolwidth 183
@@ -40,4 +41,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {2101461 ps} {2143299 ps}
+WaveRestoreZoom {10734637 ps} {15222067 ps}

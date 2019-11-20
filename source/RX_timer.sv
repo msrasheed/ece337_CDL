@@ -33,10 +33,10 @@ module RX_timer (clk,
     end
   end
 
-  always_ff @(posedge clk,  n_rst) begin
+  always_ff @(posedge clk,  negedge n_rst) begin
     if (n_rst == 1'b0) begin
-      last_d_plus = 1'b0;
-      last_d_minus = 1'b0;
+      last_d_plus <= 1'b0;
+      last_d_minus <= 1'b0;
     end else begin
       last_d_plus <= d_plus;
       last_d_minus <= d_minus;

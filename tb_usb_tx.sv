@@ -44,19 +44,19 @@ wire tb_get_tx_packet_data;		// Tells the Data Buffer to get the data
 integer tb_test_num;
 string tb_test_case;
 // Test case 'inputs' used for test stimulus
-reg [7:0] tb_test_packet_data [63:0];
+reg [63:0][7:0] tb_test_packet_data;
 // Test case expected output values for the test case
-reg tb_expected_dplus_out;	// Byte seeing what expected value it needs to be
+reg tb_expected_dplus_out;	
 reg tb_expected_dminus_out;
 reg tb_expected_tx_done;
 reg tb_expected_get_tx_packet_data;
 
-reg [7:0] tb_expected_dplus_packet;
+reg [7:0] tb_expected_dplus_packet;	// Byte seeing what expected value it needs to be
 reg [7:0] tb_expected_dminus_packet;
 reg [15:0] tb_expected_crc;		// 16 bits for the Expected CRC (Will need to calculate later)
 
 // DUT Portmap
-usb_tx
+usb_tx DUT
 (
 	// Inputs
 	.clk(tb_clk),
@@ -71,6 +71,7 @@ usb_tx
 	.tx_done(tb_tx_done),
 	.get_tx_packet_data(tb_get_tx_packet_data)
 );
+
 // Tasks for regulating the timing of input stimulus to the design
 
 	// Reset_DUT Task
@@ -97,7 +98,7 @@ usb_tx
 	task check_outputs;
 	begin
 		// Wait a little bit before checking
-		#0.1;
+		#1;
 
 		// Checking D_plus
 		assert(tb_expected_dplus_out == tb_dplus_out)
@@ -150,6 +151,34 @@ usb_tx
 	end
 	endtask
 
+	task check_EOP;		// Checks the EOP
+	begin
+		// Should be EOP Cycle
+		// Should be low for 2 clock cycles
+		tb_expected_dplus_out = 1'b0;
+		tb_expected_dminus_out = 1'b0;
+		tb_expected_tx_done = 1'b0;
+		tb_expected_get_tx_packet_data = 1'b0;
+		@ (posedge tb_clk);
+		check_outputs;
+		@ (posedge tb_clk);
+		check_outputs;
+	
+		// Tx_done = HIGH for 1 clock cycle and dplus and dminus go to IDLE states
+		tb_expected_dplus_out = 1'b1;
+		tb_expected_dminus_out = 1'b0;
+		tb_expected_tx_done = 1'b1;
+		tb_expected_get_tx_packet_data = 1'b0;
+		@ (posedge tb_clk);
+		check_outputs;
+	
+		tb_expected_tx_done = 1'b0;
+		@ (posedge tb_clk);
+		check_outputs;
+	
+	end
+	endtask
+
 // Generating the Clock
 always
 begin : CLK_GEN
@@ -165,7 +194,7 @@ begin : TEST_PROC
 	// Initialize all of the test bench signals
 	tb_test_num = -1;
 	tb_test_case = "TB Init";
-	tb_test_packet_data[63:0] = 8'b0;	// Contains the Data Buffer Data, which is initially all 0
+	tb_test_packet_data[63:0] = '0;	// Contains the Data Buffer Data, which is initially all 0
 	
 	// Output expected initial values
 	tb_expected_dplus_out = 1'b1;
@@ -259,27 +288,7 @@ begin : TEST_PROC
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be EOP Cycle
-	// Should be low for 2 clock cycles
-	tb_expected_dplus_out = 1'b0;
-	tb_expected_dminus_out = 1'b0;
-	tb_expected_tx_done = 1'b0;
-	tb_expected_get_tx_packet_data = 1'b0;
-	@ (posedge tb_clk);
-	check_outputs;
-	@ (posedge tb_clk);
-	check_outputs;
-
-	// Tx_done = HIGH for 1 clock cycle and dplus and dminus go to IDLE states
-	tb_expected_dplus_out = 1'b1;
-	tb_expected_dminus_out = 1'b0;
-	tb_expected_tx_done = 1'b1;
-	tb_expected_get_tx_packet_data = 1'b0;
-	@ (posedge tb_clk);
-	check_outputs;
-
-	tb_expected_tx_done = 1'b0;
-	@ (posedge tb_clk);
-	check_outputs;
+	check_EOP;
 
 	/******************************************************
 	********** TEST CASE 2: Checking the NAK **************
@@ -322,27 +331,7 @@ begin : TEST_PROC
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be EOP Cycle
-	// Should be low for 2 clock cycles
-	tb_expected_dplus_out = 1'b0;
-	tb_expected_dminus_out = 1'b0;
-	tb_expected_tx_done = 1'b0;
-	tb_expected_get_tx_packet_data = 1'b0;
-	@ (posedge tb_clk);
-	check_outputs;
-	@ (posedge tb_clk);
-	check_outputs;
-
-	// Tx_done = HIGH for 1 clock cycle and dplus and dminus go to IDLE states
-	tb_expected_dplus_out = 1'b1;
-	tb_expected_dminus_out = 1'b0;
-	tb_expected_tx_done = 1'b1;
-	tb_expected_get_tx_packet_data = 1'b0;
-	@ (posedge tb_clk);
-	check_outputs;
-
-	tb_expected_tx_done = 1'b0;
-	@ (posedge tb_clk);
-	check_outputs;
+	check_EOP;
 
 	/******************************************************
 	********** TEST CASE 3: Checking the DATA **************
@@ -353,7 +342,7 @@ begin : TEST_PROC
 	tb_test_case = "1 Byte of Data";
 
 	// Define expected outputs for this test case
-	tb_expected_crc = 16'hC0C0;				/********** WHAT IS THIS VALUE **********/
+	tb_expected_crc = 16'hC0C0;								/********** WHAT IS THIS VALUE **********/
 	tb_expected_dplus_packet = SYNC;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	tb_expected_dplus_out = 1'b1;
@@ -409,27 +398,7 @@ begin : TEST_PROC
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be EOP Cycle
-	// Should be low for 2 clock cycles
-	tb_expected_dplus_out = 1'b0;
-	tb_expected_dminus_out = 1'b0;
-	tb_expected_tx_done = 1'b0;
-	tb_expected_get_tx_packet_data = 1'b0;
-	@ (posedge tb_clk);
-	check_outputs;
-	@ (posedge tb_clk);
-	check_outputs;
-
-	// Tx_done = HIGH for 1 clock cycle and dplus and dminus go to IDLE states
-	tb_expected_dplus_out = 1'b1;
-	tb_expected_dminus_out = 1'b0;
-	tb_expected_tx_done = 1'b1;
-	tb_expected_get_tx_packet_data = 1'b0;
-	@ (posedge tb_clk);
-	check_outputs;
-
-	tb_expected_tx_done = 1'b0;
-	@ (posedge tb_clk);
-	check_outputs;
+	check_EOP;
 
 	/******************************************************
 	****** TEST CASE 3: Checking the Bit Stuffing *********
@@ -440,7 +409,7 @@ begin : TEST_PROC
 	tb_test_case = "1 Byte of Data";
 
 	// Define expected outputs for this test case
-	tb_expected_crc = 16'h3FC1 ;				/********** WHAT IS THIS VALUE **********/
+	tb_expected_crc = 16'h3FC1 ;								/********** WHAT IS THIS VALUE **********/
 	tb_expected_dplus_packet = SYNC;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	tb_expected_dplus_out = 1'b1;
@@ -488,7 +457,6 @@ begin : TEST_PROC
 	tb_expected_dplus_out = 1'b1;
 	tb_expected_dminus_out = 1'b0;
 	tb_expected_tx_done = 1'b0;
-	tb_expected_get_tx_packet_done = 1'b0;
 	@(posedge tb_clk);
 	check_outputs;
 
@@ -504,27 +472,7 @@ begin : TEST_PROC
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be EOP Cycle
-	// Should be low for 2 clock cycles
-	tb_expected_dplus_out = 1'b0;
-	tb_expected_dminus_out = 1'b0;
-	tb_expected_tx_done = 1'b0;
-	tb_expected_get_tx_packet_data = 1'b0;
-	@ (posedge tb_clk);
-	check_outputs;
-	@ (posedge tb_clk);
-	check_outputs;
-
-	// Tx_done = HIGH for 1 clock cycle and dplus and dminus go to IDLE states
-	tb_expected_dplus_out = 1'b1;
-	tb_expected_dminus_out = 1'b0;
-	tb_expected_tx_done = 1'b1;
-	tb_expected_get_tx_packet_data = 1'b0;
-	@ (posedge tb_clk);
-	check_outputs;
-
-	tb_expected_tx_done = 1'b0;
-	@ (posedge tb_clk);
-	check_outputs;
+	check_EOP;
 	
 end
 

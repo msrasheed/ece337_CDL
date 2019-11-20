@@ -1,3 +1,12 @@
+// $Id: $
+// File name:   tb_protocol_controler.sv
+// Created:     11/17/2019
+// Author:      Melissa Nguyen
+// Lab Section: 337-04
+// Version:     1.0  Initial Design Entry
+// Description: Test Bench for Protocol Controller
+//tb_protocol_controller.sv
+
 //tb_protocol_controller.sv
 
 `timescale 1ns / 10ps
@@ -7,20 +16,20 @@ module tb_protocol_controller();
   localparam CLK_PERIOD = 10;
 
   // Initializations for the PID from the RX
-	localparam RX_IDLE = 3'b000;
-	localparam RX_IN   = 3'b001;
-	localparam RX_OUT  = 3'b010;
-	localparam RX_DATA = 3'b011;
-	localparam RX_GOOD = 3'b100;
-	localparam RX_BAD  = 3'b101;
-	localparam RX_ACK  = 3'b110;
-	localparam RX_NCK  = 3'b111;
+	localparam RX_IDLE 	= 3'b000;
+	localparam RX_DATA   	= 3'b001;
+	localparam RX_OUT	= 3'b010;
+	localparam RX_IN 	= 3'b011;
+	//localparam RX_GOOD = 3'b100; No Longer Used
+	localparam RX_ACK  	= 3'b100;
+	localparam RX_NCK  	= 3'b101;
+	localparam RX_BAD  	= 3'b110;
 
 	// Initializations for the PID to the TX
-	localparam TX_IDLE = 2'b00;
-	localparam TX_DATA = 2'b01;
-	localparam TX_ACK = 2'b10;
-	localparam TX_NCK = 2'b11;
+	localparam TX_IDLE 	= 2'b00;
+	localparam TX_DATA 	= 2'b01;
+	localparam TX_ACK 	= 2'b10;
+	localparam TX_NCK 	= 2'b11;
 
   //DUT signals
   reg tb_clk;
@@ -110,6 +119,7 @@ module tb_protocol_controller();
     input logic expected_d_mode;
     input string test_case;
     begin
+      #1	// CHANGE: Have to wait a little so it is off the clock edge (mapped requires to wait 1??)
       assert(expected_rx_data_ready == tb_rx_data_ready)
         $info("Correct rx_data_ready for %s test case", test_case);
       else 
@@ -255,6 +265,8 @@ module tb_protocol_controller();
     expected_tx_packet = TX_ACK;
     tb_test_state = "Send_ACK";
     @(posedge tb_clk);
+    tb_rx_data_ready = 1'b0;	// CHANGE: The AHB forces the data_ready low
+    @(posedge tb_clk);
     check_outputs(expected_rx_data_ready,
                   expected_rx_transfer_active,
                   expected_rx_error,
@@ -291,6 +303,7 @@ module tb_protocol_controller();
                   tb_test_state);
     //advacne to DATA_BUFFER_WAIT
     expected_tx_transfer_active = 1'b0;
+    expected_d_mode = 1'b0;	// CHANGED: In this state, we are still listening to the Host
     tb_buffer_occupancy = 7'd1; //set this to make sure state is held until buffer occupancy reaches 0
     tb_tx_done = 1'b1;
     tb_test_state = "Data_Buffer_Wait";
@@ -444,6 +457,7 @@ module tb_protocol_controller();
                   expected_d_mode,
                   tb_test_state);
     //advance to EH_Done
+    tb_tx_done = 1'b1;	// CHANGE: This needs to be sent from the TX for the protocol controller to advance
     expected_tx_transfer_active = 1'b0;
     expected_d_mode = 1'b0;
     tb_test_state = "EH_Done";

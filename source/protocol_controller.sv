@@ -62,19 +62,19 @@ module protocol_controller
 	stateType NS;
 	
 	// Initializations for the PID from the RX
-	localparam RX_IDLE = 3'b000;
-	localparam RX_DATA   = 3'b001;
-	localparam RX_OUT  = 3'b010;
-	localparam RX_IN = 3'b011;
-	localparam RX_ACK = 3'b100;
-	localparam RX_NAK = 3'b101;
-	localparam RX_BAD  = 3'b110;
+	localparam RX_IDLE 	= 3'b000;
+	localparam RX_DATA   	= 3'b001;
+	localparam RX_OUT  	= 3'b010;
+	localparam RX_IN 	= 3'b011;
+	localparam RX_ACK 	= 3'b100;
+	localparam RX_NAK 	= 3'b101;
+	localparam RX_BAD  	= 3'b110;
 
 	// Initializations for the PID to the TX
-	localparam TX_IDLE = 2'b00;
-	localparam TX_DATA = 2'b01;
-	localparam TX_ACK = 2'b10;
-	localparam TX_NAK = 2'b11;
+	localparam TX_IDLE 	= 2'b00;
+	localparam TX_DATA 	= 2'b01;
+	localparam TX_ACK 	= 2'b10;
+	localparam TX_NAK 	= 2'b11;
 
 	// Sequential Block for the Current State Logic
 	always_ff @ (posedge clk, negedge n_rst) 
@@ -241,7 +241,7 @@ module protocol_controller
 		clear_next = 1'b0;
 		tx_packet_next = IDLE;
 		d_mode_next = 1'b0;
-		case (PS)
+		case (NS)
 			// Host to Endpoint
 			RX_ACTIVE:	begin
 						tx_error_next = 1'b0;

@@ -124,7 +124,7 @@ module tb_data_buffer();
 	 @(posedge tb_clk);
 	 tb_get_rx_data = 1'b1;
 	 @(posedge tb_clk);
-	 #0.1
+	 #1
 	 case(data_size)
 	   2'd0: begin //1 byte
 	      assert({24'd0, expected_data[7:0]} == tb_rx_data)
@@ -195,7 +195,7 @@ module tb_data_buffer();
 	 @(posedge tb_clk);//wait a clock cycle after asserting
 	 tb_get_tx_packet_data = 1'b1;
 	 @(posedge tb_clk);//wait a clock cycle after asserting
-	 #0.1
+	 #1
 	 assert(expected_byte == tb_tx_packet_data)
 	   $info("correct tx_packet_data sent to usb tx");
 	 else
@@ -209,7 +209,7 @@ module tb_data_buffer();
    task check_buffer_occupancy;
       input logic [6:0] expected_occupancy;
       begin
-	 #0.1
+	 #1
 	 assert(tb_buffer_occupancy == expected_occupancy)
 	   $info("correct output for buffer occupancy");
 	 else
@@ -249,7 +249,7 @@ module tb_data_buffer();
      send_tx_data(2'd1, tb_test_data[15:0]);
 
      //
-     //check the buffer occupancy
+     //check the buffer occupancy 
      //
      check_buffer_occupancy(7'd2);
 

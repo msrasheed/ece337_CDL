@@ -31,6 +31,7 @@ module RX_decoder (clk,
 	   next_value = 1'b0;
 	end else if (d_plus == 1'b0 && d_minus == 1'b0) begin
 	   next_eop = 1'b1;
+	   next_value = 1'b0;
 	end
      end
   end

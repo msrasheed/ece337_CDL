@@ -312,7 +312,8 @@ module tb_USB_RX;
 
   tb_send_data = new [5];
   random_senddata(2);                  //puts two random bytes in tb_send_data
-  tb_send_data[0] = 8'b11111111;
+  tb_send_data[0] = '1;
+  tb_send_data[1] = '0;
   calc_crc16(tb_send_data);            //sets tb_crc_16bit variable
   send_packet(PID_DATA0, tb_send_data);
 

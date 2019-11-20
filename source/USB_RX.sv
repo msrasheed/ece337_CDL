@@ -27,7 +27,18 @@ module USB_RX(clk,
   wire ignore_bit;
    wire en_sample;
    wire clear_byte_count;
-      
+
+   reg 	delayed_en_sample;
+   
+   always_ff @ (posedge clk, negedge n_rst) begin
+      if (n_rst == 1'b0) begin
+	 delayed_en_sample = 1'b0;
+      end else begin
+
+	 delayed_en_sample <= en_sample && !ignore_bit;
+      end
+   end
+   
 
   RX_ControlFSM controller (.clk(clk),
                             .n_rst(n_rst),
@@ -37,6 +48,7 @@ module USB_RX(clk,
                             .pass_16_bit(pass_16_bit),
                             .byte_done(byte_done),
                             .sr_val(SR_data),
+			    .shift_en(delayed_en_sample),
                             .en_buffer(en_buffer),
                             .RX_PID(RX_packet),
                             .clear_crc(clear_crc),
@@ -44,14 +56,14 @@ module USB_RX(clk,
 
   RX_SR shift_register (.clk(clk),
                         .n_rst(n_rst),
-                        .shift_strobe(en_sample),
+                        .shift_strobe(delayed_en_sample),
                         .serial_in(decoded_bit),
                         .ignore_bit(ignore_bit),
                         .RX_packet_data(SR_data));
 
   RX_byte_counter byte_counter (.clk(clk),
                                 .n_rst(n_rst),
-                                .count_enable(en_sample),
+                                .count_enable(delayed_en_sample),
 				.clear(clear_byte_count),
                                 .byte_done(byte_done));
 
@@ -77,19 +89,17 @@ module USB_RX(clk,
 
   assign store_RX_packet_data = byte_done && en_buffer;
  
-//TODO need to add CRC modules
-
   crc_16bit_chk crc16 (.clk(clk),
 		       .n_rst(n_rst),
 		       .clear(clear_crc),
 		       .serial_in(decoded_bit),
-		       .shift_en(en_sample),
+		       .shift_en(delayed_en_sample && !eop),
 		       .pass(pass_16_bit));
 
   crc_5bit_chk crc5 (.clk(clk),
 		       .n_rst(n_rst),
 		       .clear(clear_crc),
 		       .serial_in(decoded_bit),
-		       .shift_en(en_sample),
+		       .shift_en(delayed_en_sample && !eop),
 		       .pass(pass_5_bit));
 endmodule

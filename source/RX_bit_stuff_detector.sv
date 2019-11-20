@@ -21,7 +21,8 @@ module RX_bit_stuff_detector (clk,
   always_comb begin //case statement for state assignment
     next_state = state; //prevent latches
     ignore_bit = 1'b0;
-     if (enable == 1'b1) begin
+     if (next_enable == 1'b1) begin
+	next_state = IDLE;
 	case(state)
 	  IDLE: begin
              if (decoded_bit == 1'b1) begin
@@ -49,13 +50,13 @@ module RX_bit_stuff_detector (clk,
 	  
 	  COUNT4: begin
              if (decoded_bit == 1'b1) begin
-		next_state = COUNT5;
+		next_state = SKIP;
              end
 	  end
 	  
 	  COUNT5: begin
              if (decoded_bit == 1'b1) begin
-		next_state = COUNT6;
+		next_state = SKIP;
              end
 	  end
 	  
@@ -68,7 +69,7 @@ module RX_bit_stuff_detector (clk,
              ignore_bit = 1'b1;
 	  end
 	endcase // case (state)
-     end
+     end // if (next_enable == 1'b1)
   end
 
   always_ff @(posedge clk, negedge n_rst) begin

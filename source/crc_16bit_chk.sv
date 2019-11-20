@@ -41,7 +41,7 @@ always_comb begin
     end
   end
 
-  pass = Q == 16'h800e;
+  pass = Q == 16'h800d;
 end
 
 endmodule

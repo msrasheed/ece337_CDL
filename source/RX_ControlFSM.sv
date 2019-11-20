@@ -8,6 +8,7 @@ module RX_ControlFSM (clk,
                       pass_16_bit,
                       byte_done,
                       sr_val,
+		      shift_en,
                       en_buffer,
                       RX_PID,
                       clear_crc,
@@ -38,6 +39,7 @@ module RX_ControlFSM (clk,
   input wire pass_16_bit;
   input wire byte_done;
   input wire [15:0] sr_val;
+   input wire 	    shift_en;
    output reg 	    clear_byte_count;
    output reg 	    en_buffer;
   output reg [2:0] RX_PID;
@@ -119,22 +121,26 @@ module RX_ControlFSM (clk,
     end
 
     CRC5: begin
-      next_state = IDLE;
-      if (sr_val[15:4] == address) begin
-        if (eop == 1'b1) begin
-          if (pass_5_bit == 1'b1) begin
-            next_state = EOPTOKEN;
-          end
-        end
-      end
+       if (shift_en == 1'b1) begin
+	  next_state = IDLE;
+	  if (sr_val[15:4] == address) begin
+             if (eop == 1'b1) begin
+		if (pass_5_bit == 1'b1) begin
+		   next_state = EOPTOKEN;
+		end
+             end
+	  end
+       end
     end
 
     EOPTOKEN: begin
-      if (eop == 1'b1) begin
-        next_state = SENDTOKEN;
-      end else begin
-        next_state = BADDATA;
-      end
+       if (shift_en == 1'b1) begin
+	  if (eop == 1'b1) begin
+             next_state = SENDTOKEN;
+	  end else begin
+             next_state = BADDATA;
+	  end
+       end
     end
 
     SENDTOKEN: begin
@@ -164,32 +170,38 @@ module RX_ControlFSM (clk,
     end
 
     CRC16: begin
-      if ((pass_16_bit == 1'b1) && (eop == 1'b1)) begin
-        next_state = IDLE;
-      end else begin
-        next_state = BADDATA;
-      end
+       if (shift_en == 1'b1) begin
+	  if ((pass_16_bit == 1'b1) && (eop == 1'b1)) begin
+             next_state = IDLE;
+	  end else begin
+             next_state = BADDATA;
+	  end
+       end
     end
-
+       
     BADDATA: begin
       next_RX_PID = PACKET_BAD;
       next_state = IDLE;
     end
 
     ACK: begin
-      if (eop == 1'b1) begin
-        next_state = EOPACK;
-      end else begin
-        next_state = BADDATA;
-      end
+       if (shift_en == 1'b1) begin
+	  if (eop == 1'b1) begin
+             next_state = EOPACK;
+	  end else begin
+             next_state = BADDATA;
+	  end
+       end
     end
 
     EOPACK: begin
-      if (eop == 1'b1) begin
-        next_state = SENDACK;
-      end else begin
-        next_state = BADDATA;
-      end
+       if (shift_en == 1'b1) begin
+	  if (eop == 1'b1) begin
+             next_state = SENDACK;
+	  end else begin
+             next_state = BADDATA;
+	  end
+       end
     end
 
     SENDACK: begin
@@ -198,21 +210,25 @@ module RX_ControlFSM (clk,
     end
 
     NAK: begin
-      if (eop == 1'b1) begin
-        next_state = EOPNAK;
-      end else begin
-        next_state = BADDATA;
-      end
+       if (shift_en == 1'b1) begin
+	  if (eop == 1'b1) begin
+             next_state = EOPNAK;
+	  end else begin
+             next_state = BADDATA;
+	  end
+       end
     end
 
     EOPNAK: begin
-      if (eop == 1'b1) begin
-        next_state = SENDNAK;
-      end else begin
-        next_state = BADDATA;
+      if (shift_en == 1'b1) begin
+	 if (eop == 1'b1) begin
+            next_state = SENDNAK;
+	 end else begin
+            next_state = BADDATA;
+	 end
       end
     end
-
+      
     SENDNAK: begin
       next_RX_PID = PACKET_NAK;
       next_state = IDLE;

@@ -1,5 +1,5 @@
 module flex_pts_sr
-#( parameter NUM_BITS = 4, parameter SHIFT_MSB = 1)
+#( parameter NUM_BITS = 8, parameter SHIFT_MSB = 1)
 
 (input wire clk, input wire n_rst, input shift_enable, input wire [NUM_BITS - 1:0] parallel_in, input wire load_enable, output reg serial_out);
 

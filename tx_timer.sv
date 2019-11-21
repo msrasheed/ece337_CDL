@@ -6,7 +6,7 @@ module tx_timer(input wire clk, input wire disable_timer, input wire enable_time
 reg shift_strobe_bit_counter;    // count enable from the first counter, resulting in an average speed of 25/3 -> 3 rollovers in 25 clock cycles
 reg [4:0] count_out_ticks;
 
-counter25 CLOCK_COUNT(.clk(clk), .n_rst(n_rst), .count_enable(enable_timer && !(disable_timer)), .clear(clear_timer), .rollover_flag(shift_strobe_bit_counter), .count_out(count_clock_ticks));
+counter25 CLOCK_COUNT(.clk(clk), .n_rst(n_rst), .count_enable(enable_timer && !(disable_timer)), .clear(clear_timer), .roll_over(shift_strobe_bit_counter), .count_out(count_out_ticks));
 
 // The second value of the NUM_CNT_BITS to be overwritten by data size. Defines how many data bits are to be read
 flex_counter#(

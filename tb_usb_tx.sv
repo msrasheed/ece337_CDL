@@ -63,13 +63,13 @@ usb_tx DUT
 	.n_rst(tb_n_rst),
 	.tx_packet(tb_tx_packet),
 	.tx_packet_data_size(tb_tx_packet_data_size),
-	.tx_packet_data(tx_packet_data),
+	.tx_packet_data(tb_tx_packet_data),
 
 	// Outputs
 	.dPlus_out(tb_dplus_out),
 	.dMinus_out(tb_dminus_out),
 	.tx_done(tb_tx_done),
-	.get_tx_packet_data(tb_get_tx_packet_data)
+	.get_tx_packet(tb_get_tx_packet_data)
 );
 
 // Tasks for regulating the timing of input stimulus to the design
@@ -133,12 +133,34 @@ usb_tx DUT
 
 		integer i;
 	begin
-
-		for (i = 0; i < 8; i = i + 1)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+	        @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+	                
+		// Setting the expected outputs
+		tb_expected_dplus_out = expected_dplus[0];
+		tb_expected_dminus_out = expected_dminus[0];
+		tb_expected_tx_done = 1'b0;
+		tb_expected_get_tx_packet_data = 1'b0;
+			
+		check_outputs;
+                      
+		for (i = 1; i < 8; i = i + 1)
 		begin
-			// Wait a clock cycle before checking the output again
+			// Wait 8 clock cycles before checking the output again
+                        
 			@(posedge tb_clk)
-
+                        @(posedge tb_clk)
+			@(posedge tb_clk)
+                        @(posedge tb_clk)
+			@(posedge tb_clk)
+                        @(posedge tb_clk)
+			@(posedge tb_clk)
+                        @(posedge tb_clk)
+  
+		
 			// Setting the expected outputs
 			tb_expected_dplus_out = expected_dplus[i];
 			tb_expected_dminus_out = expected_dminus[i];
@@ -159,9 +181,23 @@ usb_tx DUT
 		tb_expected_dminus_out = 1'b0;
 		tb_expected_tx_done = 1'b0;
 		tb_expected_get_tx_packet_data = 1'b0;
-		@ (posedge tb_clk);
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
 		check_outputs;
-		@ (posedge tb_clk);
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
 		check_outputs;
 	
 		// Tx_done = HIGH for 1 clock cycle and dplus and dminus go to IDLE states
@@ -169,11 +205,25 @@ usb_tx DUT
 		tb_expected_dminus_out = 1'b0;
 		tb_expected_tx_done = 1'b1;
 		tb_expected_get_tx_packet_data = 1'b0;
-		@ (posedge tb_clk);
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
 		check_outputs;
 	
 		tb_expected_tx_done = 1'b0;
-		@ (posedge tb_clk);
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
+		@(posedge tb_clk)
+                @(posedge tb_clk)
 		check_outputs;
 	
 	end
@@ -274,10 +324,10 @@ begin : TEST_PROC
 	tb_tx_packet = tx_ACK;
 
 	// Wait 2 clock cycles before the dplus and dminus changes
-	@(posedge tb_clk);
-	check_outputs; 		// Making sure that the outputs stay in IDLE
-	@(posedge tb_clk);
-	check_outputs;		// Making sure that the outputs stay in IDLE
+	//@(posedge tb_clk);
+	//check_outputs; 		// Making sure that the outputs stay in IDLE
+	//@(posedge tb_clk);
+	//check_outputs;		// Making sure that the outputs stay in IDLE
 	
 	// Should be a SYNC
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);

@@ -539,7 +539,6 @@ module tb_protocol_controller();
 
       //advance to EH_Packet_Error_Wait
      tb_test_state = "EH_Packet_Error_Wait";
-      expected_rx_error = 1'b0;
       expected_tx_packet = TX_IDLE;
       @(posedge tb_clk);
       check_outputs(expected_rx_data_ready,
@@ -639,7 +638,6 @@ module tb_protocol_controller();
 
       //advance to EH_Packet_Error_Wait
      tb_test_state = "EH_Packet_Error_Wait";
-      expected_rx_error = 1'b0;
       expected_tx_packet = TX_IDLE;
       @(posedge tb_clk);
       check_outputs(expected_rx_data_ready,
@@ -781,7 +779,6 @@ module tb_protocol_controller();
 
       //advance to EH_Packet_Error_Wait
       tb_test_state = "EH_Packet_Error_Wait";
-      expected_rx_error = 1'b0;
       expected_tx_packet = TX_IDLE;
       @(posedge tb_clk);
       check_outputs(expected_rx_data_ready,

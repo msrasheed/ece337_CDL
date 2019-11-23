@@ -115,7 +115,7 @@ module tb_data_buffer();
     	 for (i = 0; i < num_bytes; i++)
     	   begin
     	      rx_send_byte(data[i][7:0]);
-          		#0.1; //not sure if this is needed, might need to adjust
+              #0.1; //not sure if this is needed, might need to adjust
     	   end
       end
    endtask // rx_send_bytes
@@ -125,7 +125,8 @@ module tb_data_buffer();
       input logic [1:0] data_size;
       input logic [31:0] expected_data;
       begin
-    	 @(posedge tb_clk);
+	 tb_data_size = data_size;
+	 @(posedge tb_clk);
     	 tb_get_rx_data = 1'b1;
     	 @(posedge tb_clk);
     	 #1
@@ -189,7 +190,7 @@ module tb_data_buffer();
 
     	@(posedge tb_clk)
     	tb_store_tx_data = 1'b0;
-          end
+      end
    endtask // send_tx_data
 
    //task for requesting TX data packet
@@ -205,7 +206,7 @@ module tb_data_buffer();
     	 else
     	   $error("incorrect tx_packet_data sent to usb tx");
     	 tb_get_tx_packet_data = 1'b0;
-          end
+      end
    endtask
 
 
@@ -218,7 +219,7 @@ module tb_data_buffer();
     	   $info("correct output for buffer occupancy");
     	 else
     	   $error("incorrect output for buffer occupancy");
-          end
+      end
    endtask // check_buffer_occupancy
 
    task gen_rand_tb_test_array;
@@ -233,26 +234,54 @@ module tb_data_buffer();
     end
   endtask
 
-  task slave_request_data_array;
+  task slave_request_data_array; //main for 4 bytes
     input logic [6:0] num_bytes;
     input logic [63:0][7:0] test_array;
     integer j;
-    begin
-      for(j = 0; j < num_bytes; j++)
-        slave_request_data(2'd3, test_array[j]);
+     logic [31:0] temp;
+     begin
+      for(j = 0; j < num_bytes; j+=4) begin
+	 temp = {test_array[j],test_array[j+1],test_array[j+2],test_array[j+3]};
+	 slave_request_data(2'd3, temp);
       end
     end
   endtask
 
+  task slave_request_data_array_2; //for 2 bytes
+    input logic [6:0] num_bytes;
+    input logic [63:0][7:0] test_array;
+    integer j;
+     logic [15:0] temp;
+     begin
+      for(j = 0; j < num_bytes; j+=2) begin
+	 temp = {test_array[j],test_array[j+1]};
+	 slave_request_data(2'd2, temp);
+      end
+    end
+  endtask // slave_request_data_array
+
+   task slave_request_data_array_1; //for 1 byte
+    input logic [6:0] num_bytes;
+    input logic [63:0][7:0] test_array;
+    integer j;
+     logic [7:0] temp;
+     begin
+      for(j = 0; j < num_bytes; j++) begin
+	 temp = {test_array[j]};
+	 slave_request_data(2'd0, temp);
+      end
+    end
+  endtask
+   
   task send_tx_data_array; //only use this with bit size multiples of 4
     input logic [6:0] num_bytes;
     input logic [63:0][7:0] test_array;
     logic [31:0] test_data;
     integer j;
     begin
-      for(j = 0, j < num_bytes; j+=4) begin
-        test_data = {test_array[j], test_array[j+1], test_array[j+2], test_array[j+3]}
-        send_tx_data(2'd3, test_data);
+       for(j = 0; j < num_bytes; j+=4) begin
+          test_data = {test_array[j], test_array[j+1], test_array[j+2], test_array[j+3]};
+	  send_tx_data(2'd3, test_data);
       end
     end
   endtask
@@ -262,7 +291,7 @@ module tb_data_buffer();
     input logic [63:0][7:0] test_array;
     integer j;
     begin
-      for(j = 0; j < num_bytes; j++)
+      for(j = 0; j < num_bytes; j++) begin
         request_tx_packet(test_array[j]);
       end
     end
@@ -283,22 +312,24 @@ module tb_data_buffer();
      //Reset dut then write 4 bytes of data to buffer from UBS RX
      //
      tb_test_case = "small data rx";
-     gen_rand_tb_test_araray();
+     gen_rand_tb_test_array();
      reset_dut();
      #0.1;
-     rx_send_bytes(4, tb_test_data); //send 4 bytes to check basic functionality
+     rx_send_array(4, tb_test_array); //send 4 bytes to check basic functionality
 
      //
      //Request the 4 bytes sent in the previous test case to the AHB slave
      //
      tb_test_case = "small data AHB read";
-     slave_request_array(4, tb_test_data); // request the data to the AHB slave
+     slave_request_data_array_2(2, tb_test_data); // request the data to the AHB slave
+     slave_request_data_array_1(1, tb_test_data); // request the data to the AHB slave
+     slave_request_data_array_1(1, tb_test_data); // request the data to the AHB slave
 
      //
      //Reset DUT then write 2 bytes of data from AHB slave
      //
      tb_test_case = "small data AHB write";
-     gen_rand_tb_test_araray();
+     gen_rand_tb_test_array();
      reset_dut();
      #0.1;
      send_tx_data_array(2, tb_test_array);
@@ -320,10 +351,10 @@ module tb_data_buffer();
      //Reset dut then write 32 bytes of data to buffer from UBS RX
      //
      tb_test_case = "large data rx";
-     gen_rand_tb_test_araray();
+     gen_rand_tb_test_array();
      reset_dut();
      #0.1;
-     rx_send_bytes(32, tb_test_array); //send 32 bytes to check basic functionality
+     rx_send_array(32, tb_test_array); //send 32 bytes to check basic functionality
 
      //
      //Request the 32 bytes sent in the previous test case to the AHB slave
@@ -350,11 +381,11 @@ module tb_data_buffer();
      //
      //Reset dut then write 64 bytes of data to buffer from UBS RX
      //
-     gen_rand_tb_test_data();
+     gen_rand_tb_test_array();
      tb_test_case = "64 byte data rx";
      reset_dut();
      #0.1;
-     rx_send_bytes(64, tb_test_array); //send 32 bytes to check basic functionality
+     rx_send_array(64, tb_test_array); //send 64 bytes to check basic functionality
 
      //
      //Request the 64 bytes sent in the previous test case to the AHB slave
@@ -366,7 +397,7 @@ module tb_data_buffer();
      //Reset DUT then write 64 bytes of data from AHB slave
      //
      tb_test_case = "64 byte data AHB write";
-     gen_rand_tb_test_data();
+     gen_rand_tb_test_array();
      reset_dut();
      #0.1;
      send_tx_data_array(64, tb_test_array);

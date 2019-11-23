@@ -341,8 +341,6 @@ module tb_USB_RX;
   end
   endtask
 
-  logic[7:0] tb_output_expected;
-  logic[7:0] tb_data_packet;
   task check_outputs;
     integer i;
     logic pass;
@@ -376,9 +374,6 @@ module tb_USB_RX;
     end
     if (pass == 1'b1) begin 
       for (i = 0; i < tb_RX_packet_data_hist.size(); i = i + 1) begin
-        tb_output_expected = tb_expected_RX_packet_data[i];
-        tb_data_packet = tb_RX_packet_data_hist[i];
-        #(1);
         if (tb_RX_packet_data_hist[i] !== tb_expected_RX_packet_data[i]) begin
           pass = 1'b0;
         end

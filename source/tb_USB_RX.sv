@@ -27,6 +27,13 @@ module tb_USB_RX;
   logic                         tb_check;
   integer                       tb_numbyte = 0;
   logic [(DATA_WIDTH-1):0]      tb_byte_out; 
+
+  //EOP signals
+  localparam  NORMAL_EOP    = 2'd0;
+  localparam  BAD_EOP_ONE   = 2'd1;
+  localparam  BAD_EOP_TWO   = 2'd2;
+  localparam  BAD_EOP_THREE = 2'd3;
+  logic [1:0] tb_eop_type;
   
   //PID values
   localparam PID_OUT   = 4'b0001;
@@ -211,12 +218,35 @@ module tb_USB_RX;
   // send the EOP
   task send_eop;
   begin
-    tb_d_plus = 1'b0;
-    tb_d_minus = 1'b0;
-    #(BIT_RATE);
-    #(BIT_RATE);
-    tb_d_plus = 1'b1;
-    #(BIT_RATE);
+    if (tb_eop_type == NORMAL_EOP) begin
+      tb_d_plus = 1'b0;
+      tb_d_minus = 1'b0;
+      #(BIT_RATE);
+      #(BIT_RATE);
+      tb_d_plus = 1'b1;
+      #(BIT_RATE);
+    end else if (tb_eop_type == BAD_EOP_ONE) begin
+      #(BIT_RATE);
+      tb_d_plus = 1'b0;
+      tb_d_minus = 1'b0;
+      #(BIT_RATE);
+      tb_d_plus = 1'b1;
+      #(BIT_RATE);
+    end else if (tb_eop_type == BAD_EOP_TWO) begin
+      tb_d_plus = 1'b0;
+      tb_d_minus = 1'b0;
+      #(BIT_RATE);
+      tb_d_plus = 1'b1;
+      #(BIT_RATE);
+      #(BIT_RATE);
+    end else if (tb_eop_type == BAD_EOP_THREE) begin
+      tb_d_plus = 1'b0;
+      tb_d_minus = 1'b0;
+      #(BIT_RATE);
+      #(BIT_RATE);
+      #(BIT_RATE);
+      tb_d_plus = 1'b1;
+    end
   end
   endtask
 
@@ -256,6 +286,8 @@ module tb_USB_RX;
   tb_n_rst = 1'b1;
   tb_d_plus = 1'b1;
   tb_d_minus = ~tb_d_plus;
+  //set eop to normal
+  tb_eop_type = NORMAL_EOP;
   //initialize crc
   tb_crc_5bit = '0;
   tb_crc_16bit = '0;
@@ -305,6 +337,18 @@ module tb_USB_RX;
   #(CLK_PERIOD * 10);
 
   //*****************************************************************************
+  // Send ACK
+  //*****************************************************************************
+  tb_test_case = "ACK PID";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  tb_send_data.delete();
+  send_packet(PID_ACK, tb_send_data);
+
+  //spacing of test cases
+  #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
   // Send DATA0
   //*****************************************************************************
   tb_test_case = "DATA0 PID";
@@ -321,16 +365,152 @@ module tb_USB_RX;
   #(CLK_PERIOD * 10);
 
   //*****************************************************************************
-  // Send ACK
+  // Send DATA1
   //*****************************************************************************
-  tb_test_case = "ACK PID";
+  tb_test_case = "DATA1 PID";
   tb_test_case_num = tb_test_case_num + 1;
 
-  tb_send_data.delete();
-  send_packet(PID_ACK, tb_send_data);
+  tb_send_data = new [5];
+  random_senddata(2);                  //puts two random bytes in tb_send_data
+  tb_send_data[0] = '1;
+  tb_send_data[1] = '0;
+  calc_crc16(tb_send_data);            //sets tb_crc_16bit variable
+  send_packet(PID_DATA1, tb_send_data);
 
   //spacing of test cases
   #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
+  // Send IN Token bad address
+  //*****************************************************************************
+  tb_test_case = "IN Token";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  set_senddata_in_out();                   //sets tb_send_data to right values
+  send_packet(PID_IN, tb_send_data);
+
+  #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
+  // Send IN Token bad address
+  //*****************************************************************************
+  tb_test_case = "IN Token bad address";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  tb_usb_addr = 7'b1;                      //correct address is 0
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  set_senddata_in_out();                   //sets tb_send_data to right values
+  send_packet(PID_IN, tb_send_data);
+
+  #(CLK_PERIOD * 10);
+  tb_usb_addr = 7'b0;                      //reset address
+
+  //*****************************************************************************
+  // Send IN Token bad endpoint
+  //*****************************************************************************
+  tb_test_case = "IN Token bad endpoint";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  tb_usb_endpoint = 4'b1;                  //correct endpoint is 0
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  set_senddata_in_out();                   //sets tb_send_data to right values
+  send_packet(PID_IN, tb_send_data);
+
+  #(CLK_PERIOD * 10);
+  tb_usb_endpoint = 4'b0;                  //reset endpoint
+
+  //*****************************************************************************
+  // Send IN Token bad crc5
+  //*****************************************************************************
+  tb_test_case = "IN Token bad crc5";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  tb_crc_5bit = 5'b0;                      //for correct addr and endpoint - crc is 5'd8
+  set_senddata_in_out();                   //sets tb_send_data to right values
+  send_packet(PID_IN, tb_send_data);
+
+  //spacing of test cases
+  #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
+  // Send OUT Token bad address
+  //*****************************************************************************
+  tb_test_case = "OUT Token bad address";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  tb_usb_addr = 7'b1;                      //correct address is 0
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  set_senddata_in_out();                   //sets tb_send_data to right values
+  send_packet(PID_OUT, tb_send_data);
+
+  #(CLK_PERIOD * 10);
+  tb_usb_addr = 7'b0;                      //reset address
+
+  //*****************************************************************************
+  // Send OUT Token bad endpoint
+  //*****************************************************************************
+  tb_test_case = "OUT Token bad endpoint";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  tb_usb_endpoint = 4'b1;                  //correct endpoint is 0
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  set_senddata_in_out();                   //sets tb_send_data to right values
+  send_packet(PID_OUT, tb_send_data);
+
+  #(CLK_PERIOD * 10);
+  tb_usb_endpoint = 4'b0;                  //reset endpoint
+
+  //*****************************************************************************
+  // Send OUT Token bad crc5
+  //*****************************************************************************
+  tb_test_case = "OUT Token bad crc5";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  tb_crc_5bit = 5'b0;                      //for correct addr and endpoint - crc is 5'd8
+  set_senddata_in_out();                   //sets tb_send_data to right values
+  send_packet(PID_OUT, tb_send_data);
+
+  //spacing of test cases
+  #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
+  // Send DATA0 bad crc16
+  //*****************************************************************************
+  tb_test_case = "DATA0 PID bad crc16";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  tb_send_data = new [5];
+  random_senddata(2);                  //puts two random bytes in tb_send_data
+  tb_send_data[0] = '1;
+  tb_send_data[1] = '0;
+  calc_crc16(tb_send_data);            //sets tb_crc_16bit variable
+  tb_crc_16bit = '0;                   //correct crc16 is for sure not 0
+  send_packet(PID_DATA0, tb_send_data);
+
+  //spacing of test cases
+  #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
+  // Send DATA1 bad data
+  //*****************************************************************************
+  tb_test_case = "DATA1 PID bad data";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  tb_send_data = new [5];
+  random_senddata(2);                  //puts two random bytes in tb_send_data
+  tb_send_data[0] = '1;
+  tb_send_data[1] = '0;
+  calc_crc16(tb_send_data);            //sets tb_crc_16bit variable
+  tb_send_data[0] = 8'b01010101;
+  send_packet(PID_DATA1, tb_send_data);
+
+  //spacing of test cases
+  #(CLK_PERIOD * 10);
+
+  
 
   //*****************************************************************************
   // END

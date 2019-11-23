@@ -62,13 +62,14 @@ module tb_USB_RX;
   localparam PID_STALL = 5'b1110;
 
   //RX Packet values
-  localparam PACKET_IDLE = 3'd0;//need to encode packet types
-  localparam PACKET_DATA = 3'd1;
-  localparam PACKET_OUT = 3'd2;
-  localparam PACKET_IN = 3'd3;
-  localparam PACKET_ACK = 3'd4;
-  localparam PACKET_NAK = 3'd5;
-  localparam PACKET_BAD = 3'd6;
+  localparam PACKET_IDLE  = 3'd0;//need to encode packet types
+  localparam PACKET_DATA  = 3'd1;
+  localparam PACKET_OUT   = 3'd2;
+  localparam PACKET_IN    = 3'd3;
+  localparam PACKET_ACK   = 3'd4;
+  localparam PACKET_NAK   = 3'd5;
+  localparam PACKET_BAD   = 3'd6;
+  localparam PACKET_STALL = 3'd7;
 
   //Reset values
   localparam RESET_RX_PACKET = '0;
@@ -185,7 +186,7 @@ module tb_USB_RX;
   task set_senddata_in_out;
   begin
     tb_send_data = new [2];
-    calc_crc5(tb_usb_addr, tb_usb_endpoint);
+    //calc_crc5(tb_usb_addr, tb_usb_endpoint);
     tb_send_data = {{tb_usb_addr, tb_usb_endpoint[3]}, {tb_usb_endpoint[2:0], tb_crc_5bit}};
   end
   endtask
@@ -308,10 +309,20 @@ module tb_USB_RX;
   end
   endtask
 
-  always @ (tb_RX_packet) begin
-    if (tb_RX_packet != PACKET_IDLE) begin
+  logic tb_flag_store_rx_packet = 1'b0;
+
+  always @(posedge tb_clk) begin
+    if (tb_flag_store_rx_packet) begin
       tb_RX_packet_hist = new [tb_RX_packet_hist.size() + 1] (tb_RX_packet_hist);
       tb_RX_packet_hist[tb_RX_packet_hist.size() - 1] = tb_RX_packet;
+      tb_flag_store_rx_packet = 1'b0;
+    end
+  end
+
+  always @ (tb_RX_packet) begin
+    tb_flag_store_rx_packet = 1'b0;
+    if (tb_RX_packet != PACKET_IDLE) begin
+      tb_flag_store_rx_packet = 1'b1;
     end
   end
 
@@ -327,6 +338,8 @@ module tb_USB_RX;
     tb_expected_RX_packet_list = new [0];
     tb_expected_RX_packet_data = new [0];
 
+    tb_send_data = new [0];
+
     //set eop to normal
     tb_eop_type = NORMAL_EOP;
     tb_eop_premature = NON_PREMATURE_EOP;
@@ -341,6 +354,7 @@ module tb_USB_RX;
   end
   endtask
 
+  //logic [2:0] tb_expected_thing, tb_actual_thing;
   task check_outputs;
     integer i;
     logic pass;
@@ -352,10 +366,19 @@ module tb_USB_RX;
 
     pass = 1'b1;
     if (tb_RX_packet_hist.size() != tb_expected_RX_packet_list.size()) begin
+      /*$info("difference in size: hist = %d; expected = %d", tb_RX_packet_hist.size(), tb_expected_RX_packet_list.size());
+      for (i = 0; i < tb_RX_packet_hist.size(); i = i + 1) begin
+        tb_actual_thing = tb_RX_packet_hist[i];
+        tb_expected_thing = i;
+        #(1);
+      end*/
       pass = 1'b0;
     end
     if (pass == 1'b1) begin 
       for (i = 0; i < tb_RX_packet_hist.size(); i = i + 1) begin
+        /*tb_expected_thing = tb_expected_RX_packet_list[i];
+        tb_actual_thing = tb_RX_packet_hist[i];
+        #(1);*/
         if (tb_RX_packet_hist[i] != tb_expected_RX_packet_list[i]) begin
           pass = 1'b0;
         end
@@ -476,6 +499,40 @@ module tb_USB_RX;
   #(CLK_PERIOD * 10);
 
   //*****************************************************************************
+  // Send NAK
+  //*****************************************************************************
+  tb_test_case = "NAK PID";
+  tb_test_case_num = tb_test_case_num + 1;
+  prep_normal_op();
+
+  tb_send_data.delete();
+  send_packet(PID_NAK, tb_send_data);
+
+  tb_expected_RX_packet_list = new [1];
+  tb_expected_RX_packet_list[0] = PACKET_NAK;
+  check_outputs();
+
+  //spacing of test cases
+  #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
+  // Send STALL
+  //*****************************************************************************
+  tb_test_case = "STALL PID";
+  tb_test_case_num = tb_test_case_num + 1;
+  prep_normal_op();
+
+  tb_send_data.delete();
+  send_packet(PID_STALL, tb_send_data);
+
+  tb_expected_RX_packet_list = new [1];
+  tb_expected_RX_packet_list[0] = PACKET_STALL;
+  check_outputs();
+
+  //spacing of test cases
+  #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
   // Send DATA0
   //*****************************************************************************
   tb_test_case = "DATA0 PID";
@@ -561,7 +618,7 @@ module tb_USB_RX;
   prep_normal_op();
 
   calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
-  tb_crc_5bit = 5'b0;                      //for correct addr and endpoint - crc is 5'd8
+  tb_crc_5bit = '0;                        //for correct addr and endpoint - crc is 5'd8
   set_senddata_in_out();                   //sets tb_send_data to right values
   send_packet(PID_IN, tb_send_data);
 

@@ -30,8 +30,10 @@ module tb_data_buffer();
   reg [31:0] tb_rx_data;
   reg [7:0] tb_tx_packet_data;
 
-  reg [31:0] tb_test_data;
+  reg [511:0] tb_test_data;
   reg [1:0] tb_bit_size;
+
+  string tb_test_case;
 
   //*****************************************************************************
   // Clock Generation Block
@@ -227,10 +229,12 @@ module tb_data_buffer();
      tb_get_tx_packet_data= 1'b0;
      tb_buffer_reserved = 1'b0;
 
+     //Small data test cases
      //
      //Reset dut then write 4 bytes of data to buffer from UBS RX
      //
-     tb_test_data = 32'd999999999;
+     tb_test_case = "small data rx";
+     tb_test_data = {510'd0, 32'd999999999};
      reset_dut();
      #0.1;
      rx_send_bytes(4, tb_test_data); //send 4 bytes to check basic functionality
@@ -238,26 +242,114 @@ module tb_data_buffer();
      //
      //Request the 4 bytes sent in the previous test case to the AHB slave
      //
+     tb_test_case = "small data AHB read";
      slave_request_data(2'd3, tb_test_data); // request the data to the AHB slave
 
      //
      //Reset DUT then write 2 bytes of data from AHB slave
      //
-     tb_test_data = 32'd11111;
+     tb_test_case = "small data AHB write";
+     tb_test_data = {510'd0, 32'd11111};
      reset_dut();
      #0.1;
      send_tx_data(2'd1, tb_test_data[15:0]);
 
      //
-     //check the buffer occupancy 
+     //check the buffer occupancy
      //
      check_buffer_occupancy(7'd2);
 
      //
      //Send the data to the USB TX
      //
+     tb_test_case = "small data tx"
      request_tx_packet(tb_test_data[7:0]);
      request_tx_packet(tb_test_data[15:8]);
+
+     //large data test cases
+     //
+     //Reset dut then write 32 bytes of data to buffer from UBS RX
+     //
+     tb_test_case = "large data rx";
+     tb_test_data = {256'd0, 256'd9999999999999999};
+     reset_dut();
+     #0.1;
+     rx_send_bytes(4, tb_test_data); //send 32 bytes to check basic functionality
+
+     //
+     //Request the 32 bytes sent in the previous test case to the AHB slave
+     //
+     integer i;
+     tb_test_case = "large data AHB read";
+     for (i = 0; i < 31; i+=4) begin
+        slave_request_data(2'd3, tb_test_data[(((i+1) * 8) - 1):(i * 8)]); // request the data to the AHB slave
+     end
+     //
+     //Reset DUT then write 32 bytes of data from AHB slave
+     //
+     tb_test_case = "large data AHB write";
+     tb_test_data = {256'd0, 256'd21213883586868};
+     reset_dut();
+     #0.1;
+     for (i = 0; i < 31; i+=4) begin
+        send_tx_data(2'd3, tb_test_data[(((i+1) * 8) - 1):(i * 8)]);
+     end
+
+     //
+     //Send the data to the USB TX
+     //
+     tb_test_case = "large data tx"
+     request_tx_packet(tb_test_data[7:0]);
+     request_tx_packet(tb_test_data[15:8]);
+     {{'h696969fedead5959420101}}
+     for (i = 0; i < 31; i++) begin
+        request_tx_packet(tb_test_data[(((i+1) * 8) - 1):(i * 8)]);
+     end
+
+     //64 byte test cases
+     //
+     //Reset dut then write 64 bytes of data to buffer from UBS RX
+     //
+     for (i = 0; i < 512; i++) begin
+        tb_test_data[i] = $urandom_range(1,0); //generate a lot of data
+     end
+     tb_test_case = "64 byte data rx";
+     reset_dut();
+     #0.1;
+     rx_send_bytes(64, tb_test_data); //send 32 bytes to check basic functionality
+
+     //
+     //Request the 64 bytes sent in the previous test case to the AHB slave
+     //
+     integer i;
+     tb_test_case = "64 byte data AHB read";
+     for (i = 0; i < 63; i+=4) begin
+        slave_request_data(2'd3, tb_test_data[(((i+1) * 8) - 1):(i * 8)]); // request the data to the AHB slave
+     end
+
+     //
+     //Reset DUT then write 64 bytes of data from AHB slave
+     //
+     tb_test_case = "64 byte data AHB write";
+     for (i = 0; i < 512; i++) begin
+        tb_test_data[i] = $urandom_range(1,0);
+     end
+     reset_dut();
+     #0.1;
+     for (i = 0; i < 63; i+=4) begin
+        send_tx_data(2'd3, tb_test_data[(((i+1) * 8) - 1):(i * 8)]);
+     end
+
+     //
+     //Send the data to the USB TX
+     //
+     tb_test_case = "64 byte data tx"
+     request_tx_packet(tb_test_data[7:0]);
+     request_tx_packet(tb_test_data[15:8]);
+     for (i = 0; i < 63; i++) begin
+        request_tx_packet(tb_test_data[(((i+1) * 8) - 1):(i * 8)]);
+     end
+
    end
 
 endmodule

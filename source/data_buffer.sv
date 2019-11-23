@@ -36,16 +36,16 @@ module data_buffer
 	
 	output reg [6:0] buffer_occupancy,	// To AHB and Protocol Controller
 	output reg [31:0] rx_data,		// To AHB
-	output reg [7:0] tx_packet_data		// To TX
+	output reg [7:0] tx_packet_data	// To TX
 );
 
 // Initializations
-	reg [512:0] mem;
-	reg [512:0] next_mem;
-	reg [5:0] write_pointer;
-	reg [5:0] write_pointer_next;
-	reg [5:0] read_pointer;
-	reg [5:0] read_pointer_next;
+	reg [7:0] mem [63:0];
+	reg [7:0] next_mem [63:0];
+	reg [6:0] write_pointer;
+	reg [6:0] write_pointer_next;
+	reg [6:0] read_pointer;
+	reg [6:0] read_pointer_next;
 	reg [31:0] rx_data_next;
 	reg [7:0] tx_packet_data_next;
 	reg [6:0] buffer_occupancy_next;
@@ -66,17 +66,17 @@ module data_buffer
 			write_pointer_next = 6'b0;
 		else if (write_pointer == 6'd63)
 			write_pointer_next = write_pointer;
-		else if ((store_tx_data == 1'b1) && (buffer_reserved == 1'b1)) begin
+		else if (store_tx_data == 1'b1 && buffer_reserved == 1'b1) begin
 			case (data_size)
-				2'd0: write_pointer_next = write_pointer + 8;
-				2'd1: write_pointer_next = write_pointer + 16;
-				2'd2: write_pointer_next = write_pointer + 24;
-				2'd3: write_pointer_next = write_pointer + 32;
+				2'd0: write_pointer_next = write_pointer + 7'd1;
+				2'd1: write_pointer_next = write_pointer + 7'd2;
+				2'd2: write_pointer_next = write_pointer + 7'd3;
+				2'd3: write_pointer_next = write_pointer + 7'd4;
 				default: write_pointer_next = write_pointer;
 			endcase
 		end
-		else if ((store_rx_packet_data == 1'b1) && (buffer_reserved == 1'b0))
-			write_pointer_next = write_pointer + 8;	//From RX
+		else if (store_rx_packet_data == 1'b1 && buffer_reserved == 1'b0)
+			write_pointer_next = write_pointer + 7'd1;	//From RX
 	
 	end
 
@@ -96,10 +96,16 @@ module data_buffer
 			read_pointer_next = 6'b0;
 		else if (read_pointer == 6'd63)
 			read_pointer_next = read_pointer;
-		else if (get_rx_data == 1'b1)
-			read_pointer_next = read_pointer + 32;	// From AHB
+		else if (get_rx_data == 1'b1) begin			// From AHB
+			case(data_size)	
+				2'd0: read_pointer_next = read_pointer + 7'd1;
+				2'd1: read_pointer_next = read_pointer + 7'd2;
+				2'd2: read_pointer_next = read_pointer + 7'd3;
+				2'd3: read_pointer_next = read_pointer + 7'd4;
+			endcase
+		end
 		else if (get_tx_packet_data == 1'b1)
-			read_pointer_next = read_pointer + 8;	//From RX
+			read_pointer_next = read_pointer + 7'd1;	//From RX
 			
 	end
 
@@ -114,7 +120,7 @@ module data_buffer
 
 	always_comb
 	begin : BUFFER_OCCUPANCY_NS_LOGIC
-		buffer_occupancy_next = (write_pointer_next - read_pointer_next)/8;
+		buffer_occupancy_next = (write_pointer_next - read_pointer_next);
 	end
 
 // Combinational Logic for RX_Data Logic
@@ -130,46 +136,83 @@ module data_buffer
 		end
 	end
 
-	always_comb						// Does this need to be sequential??
+	always_comb						// CHANGE: Made it so that the get_rx_data was based off of the data_size
 	begin : RX_DATA_AND_TX_DATA_NS_LOGIC
 		tx_packet_data_next = 8'b0;
 		rx_data_next = 32'b0;
 		if (get_rx_data == 1'b1) begin
-			rx_data_next= mem[read_pointer+:32];
+			case(data_size)
+				2'd0: begin					// Just 1 byte
+					rx_data_next[7:0] = mem[read_pointer];
+					rx_data_next[15:8] = 8'b0;
+					rx_data_next[23:16] = 8'b0;
+					rx_data_next[31:24] = 8'b0;
+				      end
+				2'd1: begin
+					rx_data_next[7:0] = mem[read_pointer];
+					rx_data_next[15:8] = mem[(read_pointer + 7'd1)];
+					rx_data_next[23:16] = 8'b0;
+					rx_data_next[31:24] = 8'b0;
+				      end
+				2'd2: begin
+					rx_data_next[7:0] = mem[read_pointer];
+					rx_data_next[15:8] = mem[(read_pointer + 7'd1)];
+					rx_data_next[23:16] = mem[(read_pointer + 7'd2)];
+					rx_data_next[31:24] = 8'b0;
+				      end
+				2'd3: begin
+					rx_data_next[7:0] = mem[read_pointer];
+					rx_data_next[15:8] = mem[(read_pointer + 7'd1)];
+					rx_data_next[23:16] = mem[(read_pointer + 7'd2)];
+					rx_data_next[31:24] = mem[(read_pointer + 7'd3)];
+				      end
+			endcase
 		end
 		if (get_tx_packet_data == 1'b1)
-			tx_packet_data_next = mem[(read_pointer)+:8];
+			tx_packet_data_next = mem[read_pointer];
 	end
 
 // Sequential Logic for MEM Block
 	always_ff @ (posedge clk, negedge n_rst)
 	begin : MEM_BLOCK_LOGIC
 		if (n_rst == 1'b0)
-			mem <= '0;
+			mem <= '{8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,
+				 8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,
+				 8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,
+				 8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,
+				 8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,
+				 8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,
+				 8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,
+				 8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0,8'b0};
 		else
-			mem <= next_mem;
+			mem[63:0] <= next_mem[63:0];
 	end
 
 // Combinational Logic for Next MEM
 	always_comb
 	begin : NEXT_MEM_LOGIC
 		next_mem = mem;
-		if ((store_rx_packet_data == 1'b1) && (buffer_reserved == 1'b0)) begin
-			next_mem[write_pointer+:8] = rx_packet_data;
+		if (store_rx_packet_data == 1'b1 && buffer_reserved == 1'b0) begin
+			next_mem[write_pointer] = rx_packet_data;
 		end
-		else if ((store_tx_data == 1'b1) && (buffer_reserved == 1'b1)) begin
+		else if (store_tx_data == 1'b1 && buffer_reserved == 1'b1) begin
 			case(data_size)
-				2'd0: next_mem[write_pointer+:8] = tx_data[7:0];
+				2'd0: next_mem[write_pointer] = tx_data[7:0];
 				2'd1: begin 
-					next_mem[(write_pointer)+: 16] = tx_data[15:0];
+					next_mem[write_pointer] = tx_data[7:0];
+					next_mem[(write_pointer + 7'd1)] = tx_data[15:8];
 				      end
 				2'd2: begin
-					next_mem[(write_pointer)+: 24] = tx_data[23:0];
+					next_mem[write_pointer] = tx_data[7:0];
+					next_mem[(write_pointer + 7'd1)] = tx_data[15:8];
+					next_mem[(write_pointer + 7'd2)] = tx_data[23:16];
 				      end
 				2'd3: begin
-					next_mem[(write_pointer)+: 32] = tx_data[31:0];
+					next_mem[write_pointer] = tx_data[7:0];
+					next_mem[(write_pointer + 7'd1)] = tx_data[15:8];
+					next_mem[(write_pointer + 7'd2)] = tx_data[23:16];
+					next_mem[(write_pointer + 7'd3)] = tx_data[31:24];
 				      end
-				default: next_mem = mem;
 			endcase
 		end
 	end

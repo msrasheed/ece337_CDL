@@ -6,7 +6,6 @@
 // Version:     1.0  Initial Design Entry
 // Description: Test Bench for Data Buffer
 //tb_data_buffer.sv
-
 `timescale 1ns / 10ps
 
 module tb_data_buffer();
@@ -114,7 +113,7 @@ module tb_data_buffer();
       begin
     	 for (i = 0; i < num_bytes; i++)
     	   begin
-    	      rx_send_byte(data[i][7:0]);
+    	      rx_send_byte(data[i]);
               #0.1; //not sure if this is needed, might need to adjust
     	   end
       end
@@ -125,40 +124,38 @@ module tb_data_buffer();
       input logic [1:0] data_size;
       input logic [31:0] expected_data;
       begin
-	 tb_data_size = data_size;
-	 @(posedge tb_clk);
-    	 tb_get_rx_data = 1'b1;
-    	 @(posedge tb_clk);
+    	@(posedge tb_clk);
+	tb_data_size = data_size;
+    	tb_get_rx_data = 1'b1;
+	@(posedge tb_clk);
+	tb_get_rx_data = 1'b0;
     	 #1
     	 case(data_size)
     	   2'd0: begin //1 byte
     	      assert({24'd0, expected_data[7:0]} == tb_rx_data)
-    		$info("correct RX data for read 1 byte from data buffer");
+    		$info("Test case %s: correct RX data for read 1 byte from data buffer", tb_test_case);
     	      else
-    		$error("Incorrect RX data for read 1 byte from data buffer");
+    		$error("Test case %s: Incorrect RX data for read 1 byte from data buffer", tb_test_case);
     	   end
     	   2'd1: begin //2 byte
     	      assert({16'd0, expected_data[15:0]} == tb_rx_data)
-    		$info("correct RX data for read 2 bytes from data buffer");
+    		$info("Test case %s: correct RX data for read 2 bytes from data buffer", tb_test_case);
     	      else
-    		$error("Incorrect RX data for read 2 bytes from data buffer");
+    		$error("Test case %s: Incorrect RX data for read 2 bytes from data buffer", tb_test_case);
     	   end
     	   2'd2: begin //3 byte
     	      assert({8'd0, expected_data[23:0]} == tb_rx_data)
-    		$info("correct RX data for read 3 bytes from data buffer");
+    		$info("Test case %s: correct RX data for read 3 bytes from data buffer", tb_test_case);
     	      else
-    		$error("Incorrect RX data for read 3 bytes from data buffer");
+    		$error("Test case %s: Incorrect RX data for read 3 bytes from data buffer", tb_test_case);
     	   end
     	   2'd3: begin //4 byte
     	      assert(expected_data == tb_rx_data)
-    		$info("correct RX data for read 4 bytes from data buffer");
+    		$info("Test case %s: correct RX data for read 4 bytes from data buffer", tb_test_case);
     	      else
-    		$error("Incorrect RX data for read 4 bytes from data buffer");
+    		$error("Test case %s: Incorrect RX data for read 4 bytes from data buffer", tb_test_case);
     	   end
     	 endcase // case (data_size)
-
-    	@(posedge tb_clk);
-    	tb_get_rx_data = 1'b0;
       end
    endtask // slave_request_data
 
@@ -202,9 +199,9 @@ module tb_data_buffer();
     	 @(posedge tb_clk);//wait a clock cycle after asserting
     	 #1
     	 assert(expected_byte == tb_tx_packet_data)
-    	   $info("correct tx_packet_data sent to usb tx");
+    	   $info("Test case %s: correct tx_packet_data sent to usb tx", tb_test_case);
     	 else
-    	   $error("incorrect tx_packet_data sent to usb tx");
+    	   $error("Test case %s: incorrect tx_packet_data sent to usb tx", tb_test_case);
     	 tb_get_tx_packet_data = 1'b0;
       end
    endtask
@@ -216,9 +213,9 @@ module tb_data_buffer();
       begin
     	 #1
     	 assert(tb_buffer_occupancy == expected_occupancy)
-    	   $info("correct output for buffer occupancy");
+    	   $info("Test case %s: correct output for buffer occupancy", tb_test_case);
     	 else
-    	   $error("incorrect output for buffer occupancy");
+    	   $error("Test case %s: incorrect output for buffer occupancy", tb_test_case);
       end
    endtask // check_buffer_occupancy
 
@@ -241,7 +238,7 @@ module tb_data_buffer();
      logic [31:0] temp;
      begin
       for(j = 0; j < num_bytes; j+=4) begin
-	 temp = {test_array[j],test_array[j+1],test_array[j+2],test_array[j+3]};
+	 temp = {test_array[j+3],test_array[j+2],test_array[j+1],test_array[j]};
 	 slave_request_data(2'd3, temp);
       end
     end
@@ -253,10 +250,12 @@ module tb_data_buffer();
     integer j;
      logic [15:0] temp;
      begin
+
       for(j = 0; j < num_bytes; j+=2) begin
-	 temp = {test_array[j],test_array[j+1]};
-	 slave_request_data(2'd2, temp);
+	 temp = test_array[j+:2];
+	 slave_request_data(2'd1, temp);
       end
+
     end
   endtask // slave_request_data_array
 
@@ -266,8 +265,9 @@ module tb_data_buffer();
     integer j;
      logic [7:0] temp;
      begin
+
       for(j = 0; j < num_bytes; j++) begin
-	 temp = {test_array[j]};
+	 temp = test_array[j];
 	 slave_request_data(2'd0, temp);
       end
     end
@@ -280,7 +280,7 @@ module tb_data_buffer();
     integer j;
     begin
        for(j = 0; j < num_bytes; j+=4) begin
-          test_data = {test_array[j], test_array[j+1], test_array[j+2], test_array[j+3]};
+          test_data = {test_array[j+3], test_array[j+2], test_array[j+1], test_array[j]};
 	  send_tx_data(2'd3, test_data);
       end
     end
@@ -321,10 +321,11 @@ module tb_data_buffer();
      //Request the 4 bytes sent in the previous test case to the AHB slave
      //
      tb_test_case = "small data AHB read";
-     slave_request_data_array_2(2, tb_test_data); // request the data to the AHB slave
-     slave_request_data_array_1(1, tb_test_data); // request the data to the AHB slave
-     slave_request_data_array_1(1, tb_test_data); // request the data to the AHB slave
-
+     tb_test_data = tb_test_array[3:0];
+     slave_request_data_array_2(2, tb_test_array[1:0]); // request the data to the AHB slave
+     slave_request_data_array_1(1, tb_test_array[2]); // request the data to the AHB slave
+     slave_request_data_array_1(1, tb_test_array[3]); // request the data to the AHB slave
+     @(posedge tb_clk);
      //
      //Reset DUT then write 2 bytes of data from AHB slave
      //
@@ -332,12 +333,12 @@ module tb_data_buffer();
      gen_rand_tb_test_array();
      reset_dut();
      #0.1;
-     send_tx_data_array(2, tb_test_array);
+     send_tx_data_array(2, tb_test_array); // CHANGE: Always does 4 because that is how the task is written
 
      //
      //check the buffer occupancy
      //
-     check_buffer_occupancy(7'd2);
+     check_buffer_occupancy(7'd4);	
 
      //
      //Send the data to the USB TX
@@ -345,6 +346,10 @@ module tb_data_buffer();
      tb_test_case = "small data tx";
      request_tx_packet(tb_test_array[0]);
      request_tx_packet(tb_test_array[1]);
+     
+     @(posedge tb_clk);			// CHANGE: Needed to make the tb_buffer_reserved back to LOW
+     tb_buffer_reserved = 1'b0;
+
 
      //large data test cases
      //
@@ -376,6 +381,9 @@ module tb_data_buffer();
      //
       tb_test_case = "large data tx";
       request_tx_array(32, tb_test_array); //read 32 bytes to ahb
+
+     @(posedge tb_clk);			// CHANGE: Needed to make the tb_buffer_reserved back to LOW
+     tb_buffer_reserved = 1'b0;
 
      //64 byte test cases
      //

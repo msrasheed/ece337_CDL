@@ -28,11 +28,11 @@ begin
         
 end
 
-always_comb 
+always_comb ROLLOVER:
 begin 
-        next_flag = 1'b0;
+        
         next_count_bit = count_bit;
-        next_roll_over = roll_over;
+        next_roll_over = 1'b0;
 
 	if (count_out == 5'd7) begin
        	next_roll_over = 1'b1;
@@ -46,10 +46,20 @@ begin
         next_roll_over = 1'b1;
         next_count_bit = count_bit + 4'd1;
         end
+
+        if(count_bit == 4'd7) begin
+        next_count_bit = '0;
+        end
         
+      
+end
+
+always_comb FLAG:
+begin 
+        next_flag = 1'b0;
+            
         if(count_bit == 4'd7) begin
         next_flag = 1'd1;
-        next_count_bit = '0;
         end
 end
 

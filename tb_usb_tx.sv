@@ -12,6 +12,8 @@ module tb_usb_tx ();
 
 // Timing related constants
 localparam CLK_PERIOD = 2.5;
+localparam bit_period_8 = CLK_PERIOD*8;
+localparam bit_period_9 = CLK_PERIOD*9;
 
 // Other related constants to the inputs
 // Tx_packet
@@ -37,7 +39,7 @@ reg [6:0] tb_tx_packet_data_size;	// Number of data in bytes from the AHB-Lite S
 wire tb_dplus_out;			// Dplus Output Line to Host
 wire tb_dminus_out;			// Dminus Output Line to Host
 wire tb_tx_done;			// Tells the Protocol Controller that the TX is done sending its packet
-wire tb_get_tx_packet_data;		// Tells the Data Buffer to get the data
+wire tb_get_tx_packet;		// Tells the Data Buffer to get the data
 
 // Test Bench Debug Signals
 // Overall test case number for reference
@@ -55,6 +57,8 @@ reg [7:0] tb_expected_dplus_packet;	// Byte seeing what expected value it needs 
 reg [7:0] tb_expected_dminus_packet;
 reg [15:0] tb_expected_crc;		// 16 bits for the Expected CRC (Will need to calculate later)
 
+integer period;				// Choosing which bit period to do
+
 // DUT Portmap
 usb_tx DUT
 (
@@ -69,7 +73,7 @@ usb_tx DUT
 	.dPlus_out(tb_dplus_out),
 	.dMinus_out(tb_dminus_out),
 	.tx_done(tb_tx_done),
-	.get_tx_packet(tb_get_tx_packet_data)
+	.get_tx_packet(tb_get_tx_packet)
 );
 
 // Tasks for regulating the timing of input stimulus to the design
@@ -98,7 +102,7 @@ usb_tx DUT
 	task check_outputs;
 	begin
 		// Wait a little bit before checking
-		#1;
+		#0.5;
 
 		// Checking D_plus
 		assert(tb_expected_dplus_out == tb_dplus_out)
@@ -119,7 +123,7 @@ usb_tx DUT
 			$error("Test case %0d: Test tx_done was not correctly received", tb_test_num);
 
 		// Checking D_plus
-		assert(tb_expected_get_tx_packet_data == tb_get_tx_packet_data)
+		assert(tb_expected_get_tx_packet_data == tb_get_tx_packet)
 			$info("Test case %0d: Test get_tx_packet_data correctly received", tb_test_num);
 		else
 			$error("Test case %0d: Test get_tx_pcket_data was not correctly received", tb_test_num);
@@ -133,41 +137,52 @@ usb_tx DUT
 
 		integer i;
 	begin
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-	        @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-	                
-		// Setting the expected outputs
-		tb_expected_dplus_out = expected_dplus[0];
-		tb_expected_dminus_out = expected_dminus[0];
-		tb_expected_tx_done = 1'b0;
-		tb_expected_get_tx_packet_data = 1'b0;
-			
-		check_outputs;
-                      
-		for (i = 1; i < 8; i = i + 1)
+
+		for (i = 0; i < 8; i = i + 1)
 		begin
-			// Wait 8 clock cycles before checking the output again
-                        
-			@(posedge tb_clk)
-                        @(posedge tb_clk)
-			@(posedge tb_clk)
-                        @(posedge tb_clk)
-			@(posedge tb_clk)
-                        @(posedge tb_clk)
-			@(posedge tb_clk)
-                        @(posedge tb_clk)
-  
-		
+			@(posedge tb_clk);
+			
 			// Setting the expected outputs
 			tb_expected_dplus_out = expected_dplus[i];
 			tb_expected_dminus_out = expected_dminus[i];
 			tb_expected_tx_done = 1'b0;
 			tb_expected_get_tx_packet_data = 1'b0;
-			
+
+			if (period == 0) begin
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				@(posedge tb_clk);
 			check_outputs;
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				period = period + 1;
+			end else if (period == 1) begin
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+			check_outputs;
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				period = period + 1;
+			end else if (period == 2) begin
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+			check_outputs;
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				@(posedge tb_clk);
+				period = 0;
+			end
+		
+
+
 		end
 
 	end
@@ -181,23 +196,9 @@ usb_tx DUT
 		tb_expected_dminus_out = 1'b0;
 		tb_expected_tx_done = 1'b0;
 		tb_expected_get_tx_packet_data = 1'b0;
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
+		@ (posedge tb_clk);
 		check_outputs;
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
+		@ (posedge tb_clk);
 		check_outputs;
 	
 		// Tx_done = HIGH for 1 clock cycle and dplus and dminus go to IDLE states
@@ -205,25 +206,11 @@ usb_tx DUT
 		tb_expected_dminus_out = 1'b0;
 		tb_expected_tx_done = 1'b1;
 		tb_expected_get_tx_packet_data = 1'b0;
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
+		@ (posedge tb_clk);
 		check_outputs;
 	
 		tb_expected_tx_done = 1'b0;
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
-		@(posedge tb_clk)
-                @(posedge tb_clk)
+		@ (posedge tb_clk);
 		check_outputs;
 	
 	end
@@ -262,6 +249,7 @@ begin : TEST_PROC
 	tb_tx_packet = tx_IDLE;		// Initially IDLE
 	tb_tx_packet_data = 8'b0;	// Initially all 0
 	tb_tx_packet_data_size = 7'b0;	// Initially 0 Bytes
+	period = 0;
 
 	// Get away from Time = 0
 	#0.1;
@@ -323,11 +311,11 @@ begin : TEST_PROC
 	tb_tx_packet_data = 8'b0;
 	tb_tx_packet = tx_ACK;
 
-	// Wait 2 clock cycles before the dplus and dminus changes
-	//@(posedge tb_clk);
-	//check_outputs; 		// Making sure that the outputs stay in IDLE
-	//@(posedge tb_clk);
-	//check_outputs;		// Making sure that the outputs stay in IDLE
+	// Wait 8 clock cycles before the dplus and dminus changes
+	for (integer i = 0; i < 9; i++) begin
+		@(posedge tb_clk);
+		check_outputs; 		// Making sure that the outputs stay in IDLE
+	end
 	
 	// Should be a SYNC
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);

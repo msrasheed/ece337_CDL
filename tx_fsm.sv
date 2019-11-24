@@ -1,5 +1,5 @@
 module tx_fsm(input wire clk, input wire n_rst,input wire [1:0] tx_packet,  output reg tx_done, output reg crc_enable, output reg [7:0] data_pts, input wire [7:0] tx_packet_data, input wire [6:0] tx_packet_data_size,
-              output reg [2:0] state_val,input wire byte_complete, output reg load_enable, output reg enable_timer, input wire [15:0] crc, output reg clear_timer, output reg get_tx_packet);
+              output reg [2:0] state_val,input wire flag, output reg load_enable, output reg enable_timer, input wire [15:0] crc, output reg clear_timer, output reg get_tx_packet);
 
 typedef enum bit [3:0]{IDLE = 4'b0000, SYNC = 4'b0001, PID = 4'b0010, DATA_T = 4'b0011, CRC_UP = 4'b0100, CRC_LOW = 4'b0101, EOP1 = 4'b0110, EOP2 = 4'b0111, ACK = 4'b1000, NACK = 4'b1001} STATE;
 
@@ -43,32 +43,33 @@ case(PS)
 IDLE: if (tx_packet == 2'd0) begin
       NS = IDLE;
       next_clear_timer = 1'b1;
+      next_enable_timer = 1'b0;
       end
  
       else begin
       NS = SYNC;
       next_enable_timer = 1'b1;
-     
+      next_clear_timer = 1'b0;
       end
 
-SYNC:  if (byte_complete == 1'b1) begin
+SYNC:  if (flag == 1'b1) begin
        NS = PID;
        next_byte_count = byte_count + 1;
        end
        else 
        NS = SYNC;
 
-PID:  if ((byte_complete == 1'b1)&& (tx_packet == 2'd1)) begin
+PID:  if ((flag == 1'b1)&& (tx_packet == 2'd1)) begin
       NS = DATA_T;
       next_byte_count = byte_count + 1;
       end
 
-      else if ((byte_complete == 1'b1) && (tx_packet == 2'd2)) begin
+      else if ((flag == 1'b1) && (tx_packet == 2'd2)) begin
       NS = ACK;
       next_byte_count = byte_count + 1;
       end
 
-      else if ((byte_complete == 1'b1) && (tx_packet == 2'd3)) begin
+      else if ((flag == 1'b1) && (tx_packet == 2'd3)) begin
       NS = NACK;
       next_byte_count = byte_count + 1;
       end
@@ -87,7 +88,7 @@ DATA_T: if (byte_count == tx_packet_data_size + 7'd2) begin
         next_get_tx_packet = 1'b1;
         end
 
-CRC_UP: if(byte_complete == 1'b1) begin
+CRC_UP: if(flag == 1'b1) begin
 
 	NS = CRC_LOW;
         next_byte_count = byte_count + 1;
@@ -96,7 +97,7 @@ CRC_UP: if(byte_complete == 1'b1) begin
         else 
         NS = CRC_UP;
 
-CRC_LOW: if (byte_complete == 1'b1) begin
+CRC_LOW: if (flag == 1'b1) begin
          NS =  EOP1;
          next_byte_count = byte_count + 1;
          end
@@ -105,19 +106,19 @@ CRC_LOW: if (byte_complete == 1'b1) begin
          NS = CRC_LOW;
          end
 
-EOP1:    if(byte_complete == 1'b1) 
+EOP1:    if(flag == 1'b1) 
          NS = EOP2;
 
 EOP2:   NS = IDLE;
 
-ACK:    if (byte_complete == 1'd1) begin
+ACK:    if (flag == 1'd1) begin
         next_byte_count = byte_count + 1;
         NS = EOP1;
         end 
         else
         NS = ACK;
 
-NACK: 	if (byte_complete == 1'd1) begin
+NACK: 	if (flag == 1'd1) begin
         next_byte_count = byte_count + 1;
         NS = EOP1;
         end
@@ -210,6 +211,8 @@ begin
         get_tx_packet <= '0;
         load_enable <= '0;
         tx_done <= '0;
+        enable_timer <= '0;
+	clear_timer <= '0;
 end
 
 else begin
@@ -220,6 +223,8 @@ else begin
         get_tx_packet <= next_get_tx_packet;
         load_enable <= next_load_enable;
         tx_done <= next_tx_done;
+	enable_timer <= next_enable_timer;
+	clear_timer <= next_clear_timer;
 
 end
 end

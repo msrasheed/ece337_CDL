@@ -182,7 +182,6 @@ usb_tx DUT
 			end
 		
 
-
 		end
 
 	end
@@ -329,6 +328,7 @@ begin : TEST_PROC
 	tb_expected_dplus_packet = ACK;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
+	@(posedge tb_clk);
 
 	// Should be EOP Cycle
 	check_EOP;

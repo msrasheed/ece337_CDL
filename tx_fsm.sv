@@ -1,8 +1,8 @@
+
 module tx_fsm(input wire clk, input wire n_rst,input wire [1:0] tx_packet,  output reg tx_done, output reg crc_enable, output reg [7:0] data_pts, input wire [7:0] tx_packet_data, input wire [6:0] tx_packet_data_size,
               output reg [2:0] state_val,input wire flag, output reg load_enable, output reg enable_timer, input wire [15:0] crc, output reg clear_timer, output reg get_tx_packet);
 
-typedef enum bit [3:0]{IDLE = 4'b0000, SYNC = 4'b0001, PID = 4'b0010, DATA_T = 4'b0011, CRC_UP = 4'b0100, CRC_LOW = 4'b0101, EOP1 = 4'b0110, EOP2 = 4'b0111, ACK = 4'b1000, NACK = 4'b1001, WACK = 4'b1010, WNACK = 4'b1011, WSYNC = 4'b1100,
-                       WPID = 4'b1101, WDATA = 4'b1111} STATE;
+typedef enum bit [3:0]{IDLE = 4'b0000, SYNC = 4'b0001, PID = 4'b0010, DATA_T = 4'b0011, CRC_UP = 4'b0100, CRC_LOW = 4'b0101, EOP1 = 4'b0110, EOP2 = 4'b0111, ACK = 4'b1000, NACK = 4'b1001, SYNC_L = 4'b1010, PID_L = 4'b1011} STATE;
 
 STATE PS;
 STATE NS;
@@ -48,39 +48,35 @@ IDLE: if (tx_packet == 2'd0) begin
       end
  
       else begin
-      NS = WSYNC;
+      NS = SYNC_L;
       next_enable_timer = 1'b1;
       next_clear_timer = 1'b0;
       end
-WSYNC: NS = SYNC;
-
+SYNC_L: NS = SYNC;
 SYNC:  if (flag == 1'b1) begin
-       NS = WPID;
+       NS = PID_L;
        next_byte_count = byte_count + 1;
        end
        else 
        NS = SYNC;
-WPID: NS = PID;
+PID_L: NS = PID;
 PID:  if ((flag == 1'b1)&& (tx_packet == 2'd1)) begin
-      NS = WDATA;
+      NS = DATA_T;
       next_byte_count = byte_count + 1;
       end
 
       else if ((flag == 1'b1) && (tx_packet == 2'd2)) begin
-      NS = WACK;
+      NS = EOP1;
       next_byte_count = byte_count + 1;
       end
 
       else if ((flag == 1'b1) && (tx_packet == 2'd3)) begin
-      NS = WNACK;
+      NS = EOP1;
       next_byte_count = byte_count + 1;
       end
 
       else 
       NS = PID;
-WDATA: NS = DATA_T;
-WACK: NS = ACK;
-WNACK: NS = NACK;
 
 DATA_T: if (byte_count == tx_packet_data_size + 7'd2) begin 
         NS = CRC_UP;
@@ -147,8 +143,23 @@ case(PS)
 IDLE: 	begin
 		next_data_pts = 8'b0;
 		next_state_val = 3'd0;
-                next_load_enable = '0;
 	end
+PID_L: begin
+	
+	if (tx_packet == 2'd0) 
+        	next_data_pts = {4'd15, 4'd0};
+
+        else if(tx_packet == 2'd1)
+        	next_data_pts = {4'd12, 4'd3};
+
+        else if(tx_packet == 2'd2)
+        	next_data_pts = {4'd11, 4'd4};
+
+        else if(tx_packet == 2'd3)
+        	next_data_pts = {4'd10, 4'd5};
+	next_load_enable = 1'd1;
+      next_state_val = 3'd1;
+      end
 PID:  begin
 	
 	if (tx_packet == 2'd0) 
@@ -162,70 +173,49 @@ PID:  begin
 
         else if(tx_packet == 2'd3)
         	next_data_pts = {4'd10, 4'd5};
-      
+	next_load_enable = 1'd0;      
       next_state_val = 3'd1;
-      next_load_enable = '0;
       end
-WSYNC: next_load_enable = 1'b1;
-WPID : next_load_enable = 1'b1;
-WACK: next_load_enable = 1'b1;
-WNACK: next_load_enable = 1'b1;
-WDATA: next_load_enable = 1'b1;
-
+SYNC_L: begin
+	next_load_enable = 1'd1;
+	next_data_pts = 8'b10000000;
+	next_state_val = 3'd2;
+	end
 SYNC: begin
-      next_load_enable = 1'd1;
+      next_load_enable = 1'd0;
       next_data_pts = 8'b10000000;
       next_state_val = 3'd2;
-      next_load_enable = '0;
       end
 
 DATA_T: begin
         next_load_enable = 1'd1;
 	next_data_pts = tx_packet_data;
         next_state_val = 3'd3;
-	next_load_enable = '0;
 	end
 
 CRC_UP: begin
          next_load_enable = 1'd1;
 	next_data_pts = crc[15:8];
         next_state_val = 3'd4;
-       next_load_enable = '0;
         end
 
 CRC_LOW: begin
 	 next_load_enable = 1'd1;
          next_data_pts = crc[7:0];
          next_state_val = 3'd5;
-         next_load_enable = '0;
          end
 
 EOP1:    begin
         next_load_enable = 1'd0;
-	next_data_pts = 8'd0;
         next_state_val = 3'd6;
         end
 
 EOP2: begin
     next_load_enable = 1'd0;
     next_state_val = 3'd7;
-    next_data_pts = 8'd0;
     next_tx_done = 1'b1;
     end
 
-ACK: 
-begin
-next_load_enable = 1'b0;
-next_state_val = 3'd2;
-next_data_pts = {4'd13, 4'd2};
-end
-
-NACK:
-begin
-next_load_enable = 1'b0;
-next_state_val = 3'd2;
-next_data_pts = {4'd10, 4'd5};
-end
 endcase
 end
 
@@ -258,6 +248,3 @@ else begin
 end
 end
 endmodule
-  
-       
-                  

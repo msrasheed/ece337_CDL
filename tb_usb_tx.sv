@@ -24,7 +24,7 @@ localparam tx_NAK = 2'b11;
 //Dplus and Dminus for common PIDs / Packet Types
 localparam IDLE 	= 8'b11111111;
 localparam SYNC		= 8'b00101010;		// For d_plus. d_minus is complement of it
-localparam ACK		= 8'b00101101;
+localparam ACK		= 8'b00111001;
 localparam NAK		= 8'b10100101;
 localparam DATA		= 8'b00111100;
 
@@ -191,17 +191,18 @@ usb_tx DUT
 	task check_EOP;		// Checks the EOP
 	begin
 		// Should be EOP Cycle
-		// Should be low for 2 clock cycles
+		// Should be low for 2 bit periods
 		tb_expected_dplus_out = 1'b0;
 		tb_expected_dminus_out = 1'b0;
 		tb_expected_tx_done = 1'b0;
 		tb_expected_get_tx_packet_data = 1'b0;
-		@ (posedge tb_clk);
-		check_outputs;
-		@ (posedge tb_clk);
-		check_outputs;
+		// Wait 8 clock cycles before the dplus and dminus changes
+		for (integer i = 0; i < 16; i++) begin
+			@(posedge tb_clk);
+			check_outputs; 		// Making sure that the outputs stay in IDLE
+		end
 	
-		// Tx_done = HIGH for 1 clock cycle and dplus and dminus go to IDLE states
+		// Tx_done = HIGH for 1 bit period and dplus and dminus go to IDLE states
 		tb_expected_dplus_out = 1'b1;
 		tb_expected_dminus_out = 1'b0;
 		tb_expected_tx_done = 1'b1;
@@ -210,8 +211,11 @@ usb_tx DUT
 		check_outputs;
 	
 		tb_expected_tx_done = 1'b0;
-		@ (posedge tb_clk);
-		check_outputs;
+		// Wait 8 clock cycles before the dplus and dminus changes
+		for (integer i = 0; i < 7; i++) begin
+			@(posedge tb_clk);
+			check_outputs; 		// Making sure that the outputs stay in IDLE
+		end
 	
 	end
 	endtask
@@ -312,10 +316,11 @@ begin : TEST_PROC
 	tb_tx_packet = tx_ACK;
 
 	// Wait 8 clock cycles before the dplus and dminus changes
-	for (integer i = 0; i < 9; i++) begin
+	for (integer i = 0; i < 8; i++) begin
 		@(posedge tb_clk);
 		check_outputs; 		// Making sure that the outputs stay in IDLE
 	end
+	period = period + 1;
 	
 	// Should be a SYNC
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);

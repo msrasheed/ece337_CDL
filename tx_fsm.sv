@@ -37,6 +37,7 @@ next_clear_timer = clear_timer;
 next_enable_timer = enable_timer;
 next_byte_count = '0;
 next_get_tx_packet = '0;
+next_state_val = state_val;
 
 
 case(PS)
@@ -52,27 +53,40 @@ IDLE: if (tx_packet == 2'd0) begin
       next_enable_timer = 1'b1;
       next_clear_timer = 1'b0;
       end
-SYNC_L: NS = SYNC;
+SYNC_L: 
+       begin
+       NS = SYNC;
+       next_state_val = 3'd1;
+       end
+
 SYNC:  if (flag == 1'b1) begin
        NS = PID_L;
        next_byte_count = byte_count + 1;
        end
        else 
        NS = SYNC;
-PID_L: NS = PID;
+PID_L: 
+      begin
+      NS = PID;
+      next_state_val = 3'd2; 
+      end
+
 PID:  if ((flag == 1'b1)&& (tx_packet == 2'd1)) begin
       NS = DATA_T;
+      next_state_val = 3'd3;
       next_byte_count = byte_count + 1;
       end
 
       else if ((flag == 1'b1) && (tx_packet == 2'd2)) begin
       NS = EOP1;
+      next_state_val = 3'd6;
       next_byte_count = byte_count + 1;
       end
 
       else if ((flag == 1'b1) && (tx_packet == 2'd3)) begin
       NS = EOP1;
       next_byte_count = byte_count + 1;
+      next_state_val = 3'd7;
       end
 
       else 
@@ -80,6 +94,7 @@ PID:  if ((flag == 1'b1)&& (tx_packet == 2'd1)) begin
 
 DATA_T: if (byte_count == tx_packet_data_size + 7'd2) begin 
         NS = CRC_UP;
+        next_state_val = 3'd4;
         next_byte_count = byte_count + 1;
         end
 
@@ -92,6 +107,7 @@ DATA_T: if (byte_count == tx_packet_data_size + 7'd2) begin
 CRC_UP: if(flag == 1'b1) begin
 
 	NS = CRC_LOW;
+	next_state_val = 3'd5;
         next_byte_count = byte_count + 1;
         end
 
@@ -100,6 +116,7 @@ CRC_UP: if(flag == 1'b1) begin
 
 CRC_LOW: if (flag == 1'b1) begin
          NS =  EOP1;
+         next_state_val = 3'd6;
          next_byte_count = byte_count + 1;
          end
 
@@ -107,26 +124,15 @@ CRC_LOW: if (flag == 1'b1) begin
          NS = CRC_LOW;
          end
 
-EOP1:    if(shift_strobe == 1'b1) 
+EOP1:    if(shift_strobe == 1'b1) begin 
+	 next_state_val = 3'd7;
          NS = EOP2;
+         end
 
-EOP2:   if (shift_strobe == 1'b1)
-	NS = IDLE;
-
-ACK:    if (flag == 1'd1) begin
-        next_byte_count = byte_count + 1;
-        NS = EOP1;
-        end 
-        else
-        NS = ACK;
-
-NACK: 	if (flag == 1'd1) begin
-        next_byte_count = byte_count + 1;
-        NS = EOP1;
+EOP2:   if (shift_strobe == 1'b1) begin
+        NS = IDLE;
+        next_state_val = 3'd0;
         end
-        
-	else 
-        NS = NACK;
         
 endcase
 end
@@ -135,7 +141,6 @@ always_comb OUTPUT_LOGIC:
 begin
 
 next_data_pts = data_pts;
-next_state_val = state_val;
 next_load_enable = '0;
 next_tx_done = '0;
 
@@ -143,7 +148,6 @@ case(PS)
 
 IDLE: 	begin
 		next_data_pts = 8'b0;
-		next_state_val = 3'd0;
 	end
 PID_L: begin
 	
@@ -159,7 +163,7 @@ PID_L: begin
         else if(tx_packet == 2'd3)
         	next_data_pts = {4'd10, 4'd5};
 	next_load_enable = 1'd1;
-      next_state_val = 3'd1;
+
       end
 PID:  begin
 	
@@ -175,45 +179,43 @@ PID:  begin
         else if(tx_packet == 2'd3)
         	next_data_pts = {4'd10, 4'd5};
 	next_load_enable = 1'd0;      
-      next_state_val = 3'd1;
+  
       end
 SYNC_L: begin
 	next_load_enable = 1'd1;
 	next_data_pts = 8'b10000000;
-	next_state_val = 3'd2;
+	
 	end
 SYNC: begin
       next_load_enable = 1'd0;
       next_data_pts = 8'b10000000;
-      next_state_val = 3'd2;
+    
       end
 
 DATA_T: begin
         next_load_enable = 1'd1;
 	next_data_pts = tx_packet_data;
-        next_state_val = 3'd3;
 	end
 
 CRC_UP: begin
          next_load_enable = 1'd1;
 	next_data_pts = crc[15:8];
-        next_state_val = 3'd4;
         end
 
 CRC_LOW: begin
 	 next_load_enable = 1'd1;
          next_data_pts = crc[7:0];
-         next_state_val = 3'd5;
+      
          end
 
 EOP1:    begin
         next_load_enable = 1'd0;
-        next_state_val = 3'd6;
+       
         end
 
 EOP2: begin
     next_load_enable = 1'd0;
-    next_state_val = 3'd7;
+
     next_tx_done = 1'b1;
     end
 

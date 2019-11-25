@@ -102,7 +102,7 @@ usb_tx DUT
 	task check_outputs;
 	begin
 		// Wait a little bit before checking
-		#0.5;
+		#0.1;
 
 		// Checking D_plus
 		assert(tb_expected_dplus_out == tb_dplus_out)
@@ -128,7 +128,34 @@ usb_tx DUT
 		else
 			$error("Test case %0d: Test get_tx_pcket_data was not correctly received", tb_test_num);
 	end
-	endtask	
+	endtask
+	
+	// Task for the Bit Period
+	task clock_bit;
+	begin
+		// One clock cycle has happened before this to indicate that it has changed
+		if (period == 0) begin
+			for (integer t = 0; t < 7; t++) begin
+				@(posedge tb_clk);
+				check_outputs;
+			end
+		end
+		else if (period == 1) begin
+			for (integer t = 0; t < 7; t++) begin
+				@(posedge tb_clk);
+				check_outputs;
+			end
+		end 
+		else if (period == 2) begin
+			for (integer t = 0; t < 8; t++) begin
+				@(posedge tb_clk);
+				check_outputs;
+			end
+		end
+		// On the next clock period, the dplus and dminus should change
+		// +1 for the next clock cycle
+	end
+	endtask
 	
 	// Task for Checking Common SYNC/NAK/ACK
 	task check_packet_common;
@@ -141,47 +168,16 @@ usb_tx DUT
 		for (i = 0; i < 8; i = i + 1)
 		begin
 			@(posedge tb_clk);
-			
+			period += 1;
+			if (period == 3)
+				period = 0;
 			// Setting the expected outputs
 			tb_expected_dplus_out = expected_dplus[i];
 			tb_expected_dminus_out = expected_dminus[i];
 			tb_expected_tx_done = 1'b0;
 			tb_expected_get_tx_packet_data = 1'b0;
 
-			if (period == 0) begin
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-			check_outputs;
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				period = period + 1;
-			end else if (period == 1) begin
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-			check_outputs;
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				period = period + 1;
-			end else if (period == 2) begin
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-			check_outputs;
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				@(posedge tb_clk);
-				period = 0;
-			end
-		
-
+			clock_bit;
 		end
 
 	end
@@ -191,122 +187,32 @@ usb_tx DUT
 	begin
 		// Should be EOP Cycle
 		// Should be low for 2 bit periods
+		@(posedge tb_clk);
+		period += 1;
 		tb_expected_dplus_out = 1'b0;
 		tb_expected_dminus_out = 1'b0;
 		tb_expected_tx_done = 1'b0;
 		tb_expected_get_tx_packet_data = 1'b0;
 		// Wait 2 bit periods for dplus and dminus correct EOP
-		if (period == 0) begin
-			// 8 clk then 8 more clk
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			period = period + 1;
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			period = period + 1;
-		end
-		else if (period == 1) begin
-			// 8 clk then 9 clk
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			period = period + 1;
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			period = 0;
-		end
-		else if (period == 2) begin
-			// Wait 9 clk then 8 clk
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			period = 0;
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			period = period + 1;
-		end
+		clock_bit;
+		@(posedge tb_clk);
+		clock_bit;
 
 		// Tx_done = HIGH for 1 bit period and dplus and dminus go to IDLE states
 		tb_expected_dplus_out = 1'b1;
 		tb_expected_dminus_out = 1'b0;
-		tb_expected_tx_done = 1'b1;
 		tb_expected_get_tx_packet_data = 1'b0;
 		@ (posedge tb_clk);
+		
+		// Wait a clock cycle for tx_done to be asserted to err on the side of caution
+		@(posedge tb_clk);
+		tb_expected_tx_done = 1'b1;
+		@(posedge tb_clk);
 		check_outputs;
-	
 		tb_expected_tx_done = 1'b0;
 		// Wait more clock cycles
-		if (period == 0) begin
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			check_outputs;
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			period = period + 1;
-		end else if (period == 1) begin
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			check_outputs;
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			period = period + 1;
-		end else if (period == 2) begin
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			check_outputs;
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			@(posedge tb_clk);
-			period = 0;
-		end
+		clock_bit;
+		@(posedge tb_clk);
 	
 	end
 	endtask
@@ -411,23 +317,18 @@ begin : TEST_PROC
 		@(posedge tb_clk);
 		check_outputs; 		// Making sure that the outputs stay in IDLE
 	end
-	period = period + 1;
-	
+	tb_tx_packet = tx_IDLE;
 	// Should be a SYNC
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
-	
+
 	// Should be an ACK PID
 	tb_expected_dplus_packet = ACK;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
-	@(posedge tb_clk);
-
+	
 	// Should be EOP Cycle
 	check_EOP;
-	@(posedge tb_clk);
-	@(posedge tb_clk);
-	@(posedge tb_clk);
-	@(posedge tb_clk);
+	#(tb_clk*1000)
 
 	/******************************************************
 	********** TEST CASE 2: Checking the NAK **************

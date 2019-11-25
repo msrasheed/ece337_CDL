@@ -1,5 +1,5 @@
 `timescale 1ns / 100ps
-module counter25 (input wire clk, input wire n_rst, input wire count_enable, input wire clear, output reg roll_over, output reg [4:0] count_out, output reg flag);
+module counter25 (input wire clk, input wire disable_timer, input wire n_rst, input wire count_enable, input wire clear, output reg roll_over, output reg [4:0] count_out, output reg flag);
 
   
 reg [4:0] next_count_out;
@@ -33,8 +33,20 @@ begin
         
         next_count_bit = count_bit;
         next_roll_over = 1'b0;
-
-	if (count_out == 5'd7) begin
+	
+	if (disable_timer == 1'b1) begin
+		next_count_bit = count_bit;
+		if (count_out == 5'd7) begin
+       		next_roll_over = 1'b1;
+        	end
+       	 	else if(count_out == 5'd15) begin
+       	 	next_roll_over = 1'b1;
+        	end
+        	else if(count_out == 5'd24) begin
+        	next_roll_over = 1'b1;
+        	end
+	end
+	else if (count_out == 5'd7) begin
        	next_roll_over = 1'b1;
         next_count_bit = count_bit + 4'd1;
         end
@@ -47,7 +59,7 @@ begin
         next_count_bit = count_bit + 4'd1;
         end
 
-        if(count_bit == 4'd7) begin
+        if(count_bit == 4'd8) begin
         next_count_bit = '0;
         end
         
@@ -58,7 +70,7 @@ always_comb FLAG:
 begin 
         next_flag = 1'b0;
             
-        if(count_bit == 4'd7) begin
+        if(count_bit == 4'd8) begin
         next_flag = 1'd1;
         end
 end
@@ -84,147 +96,3 @@ end
 
 endmodule
 
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 

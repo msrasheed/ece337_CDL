@@ -44,4 +44,3 @@ always_comb begin
   crc = ~Q;
 end
 endmodule
-

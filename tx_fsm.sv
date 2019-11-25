@@ -1,6 +1,6 @@
 
 module tx_fsm(input wire clk, input wire n_rst,input wire [1:0] tx_packet,  output reg tx_done, output reg crc_enable, output reg [7:0] data_pts, input wire [7:0] tx_packet_data, input wire [6:0] tx_packet_data_size,
-              output reg [2:0] state_val,input wire flag, output reg load_enable, output reg enable_timer, input wire [15:0] crc, output reg clear_timer, output reg get_tx_packet);
+              output reg [2:0] state_val,input wire flag, output reg load_enable, output reg enable_timer, input wire [15:0] crc, output reg clear_timer, output reg get_tx_packet, input wire shift_strobe);
 
 typedef enum bit [3:0]{IDLE = 4'b0000, SYNC = 4'b0001, PID = 4'b0010, DATA_T = 4'b0011, CRC_UP = 4'b0100, CRC_LOW = 4'b0101, EOP1 = 4'b0110, EOP2 = 4'b0111, ACK = 4'b1000, NACK = 4'b1001, SYNC_L = 4'b1010, PID_L = 4'b1011} STATE;
 
@@ -107,10 +107,11 @@ CRC_LOW: if (flag == 1'b1) begin
          NS = CRC_LOW;
          end
 
-EOP1:    if(flag == 1'b1) 
+EOP1:    if(shift_strobe == 1'b1) 
          NS = EOP2;
 
-EOP2:   NS = IDLE;
+EOP2:   if (shift_strobe == 1'b1)
+	NS = IDLE;
 
 ACK:    if (flag == 1'd1) begin
         next_byte_count = byte_count + 1;

@@ -195,12 +195,73 @@ usb_tx DUT
 		tb_expected_dminus_out = 1'b0;
 		tb_expected_tx_done = 1'b0;
 		tb_expected_get_tx_packet_data = 1'b0;
-		// Wait 8 clock cycles before the dplus and dminus changes
-		for (integer i = 0; i < 16; i++) begin
+		// Wait 2 bit periods for dplus and dminus correct EOP
+		if (period == 0) begin
+			// 8 clk then 8 more clk
 			@(posedge tb_clk);
-			check_outputs; 		// Making sure that the outputs stay in IDLE
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			period = period + 1;
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			period = period + 1;
 		end
-	
+		else if (period == 1) begin
+			// 8 clk then 9 clk
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			period = period + 1;
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			period = 0;
+		end
+		else if (period == 2) begin
+			// Wait 9 clk then 8 clk
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			period = 0;
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			period = period + 1;
+		end
+
 		// Tx_done = HIGH for 1 bit period and dplus and dminus go to IDLE states
 		tb_expected_dplus_out = 1'b1;
 		tb_expected_dminus_out = 1'b0;
@@ -210,10 +271,41 @@ usb_tx DUT
 		check_outputs;
 	
 		tb_expected_tx_done = 1'b0;
-		// Wait 8 clock cycles before the dplus and dminus changes
-		for (integer i = 0; i < 7; i++) begin
+		// Wait more clock cycles
+		if (period == 0) begin
 			@(posedge tb_clk);
-			check_outputs; 		// Making sure that the outputs stay in IDLE
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			check_outputs;
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			period = period + 1;
+		end else if (period == 1) begin
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			check_outputs;
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			period = period + 1;
+		end else if (period == 2) begin
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			check_outputs;
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			@(posedge tb_clk);
+			period = 0;
 		end
 	
 	end
@@ -332,6 +424,10 @@ begin : TEST_PROC
 
 	// Should be EOP Cycle
 	check_EOP;
+	@(posedge tb_clk);
+	@(posedge tb_clk);
+	@(posedge tb_clk);
+	@(posedge tb_clk);
 
 	/******************************************************
 	********** TEST CASE 2: Checking the NAK **************

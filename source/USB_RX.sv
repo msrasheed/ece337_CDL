@@ -23,7 +23,7 @@ module USB_RX(clk,
   wire byte_done;
   wire en_buffer;
   wire clear_crc;
-  wire [15:0] SR_data;
+  wire [23:0] SR_data;
   wire ignore_bit;
    wire en_sample;
    wire clear_byte_count;
@@ -88,7 +88,8 @@ module USB_RX(clk,
                       .eop(eop));
 
   assign store_RX_packet_data = byte_done && en_buffer;
- 
+   assign RX_packet_data = SR_data[23:16];
+   
   crc_16bit_chk crc16 (.clk(clk),
 		       .n_rst(n_rst),
 		       .clear(clear_crc),

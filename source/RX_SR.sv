@@ -6,7 +6,7 @@ module RX_SR (clk, n_rst, shift_strobe, serial_in, ignore_bit, RX_packet_data);
   input wire shift_strobe;
   input wire serial_in;
   input wire ignore_bit;
-  output wire [15:0] RX_packet_data;
+  output wire [23:0] RX_packet_data;
 
 //  reg next_shift_en;
 //   reg next_next_shift_en;
@@ -28,7 +28,7 @@ module RX_SR (clk, n_rst, shift_strobe, serial_in, ignore_bit, RX_packet_data);
    end
 */   
 
-  flex_stp_sr #(.NUM_BITS(16), .SHIFT_MSB(1)) shift_register
+  flex_stp_sr #(.NUM_BITS(24), .SHIFT_MSB(1)) shift_register
               (.clk(clk),
                .n_rst(n_rst),
                .shift_enable(shift_en),

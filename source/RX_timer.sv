@@ -17,9 +17,13 @@ module RX_timer (clk,
   reg enable_8;
   reg clear;
   wire skip_bit;
-
+   wire count8;
+   reg 	count_reset;
+   reg 	ignore_count;
+   
   reg last_d_plus;
   reg last_d_minus;
+
 
   typedef enum reg [3:0] {IDLE, WAIT1, WAIT2, WAIT3, WAIT4} state_type;
 
@@ -47,7 +51,9 @@ module RX_timer (clk,
     next_state = state;
     count_enable = 1'b1;
     clear = 1'b0;
-
+     count_reset = 1'b0;
+     ignore_count = 1'b0;
+     
     case(state)
       IDLE: begin
         if (sync == 1'b1) begin
@@ -58,7 +64,8 @@ module RX_timer (clk,
       WAIT1: begin
         count_enable = 1'b0;
         clear = 1'b1;
-        next_state = WAIT2;
+	 ignore_count = 1'b1;
+	 next_state = WAIT2;
       end
 
       WAIT2: begin
@@ -73,10 +80,20 @@ module RX_timer (clk,
 
       WAIT4: begin
         count_enable = 1'b0;
-        next_state = IDLE;
+	 count_reset = 1'b1;
+	 next_state = IDLE;
       end
     endcase
   end //comb block
+
+   always_ff @(posedge clk, negedge n_rst) begin
+      if (n_rst == 1'b0) begin
+	 state <= IDLE;
+      end else begin
+	 state <= next_state;
+      end
+   end
+   
 
   flex_counter #(.NUM_CNT_BITS(6)) counter_25
                 (.clk(clk),
@@ -96,6 +113,8 @@ module RX_timer (clk,
                 .clear(clear),
                 .count_enable(enable_8),
                 .rollover_val(4'd8),
-                .rollover_flag(en_sample));
+                .rollover_flag(count8));
 
+   assign en_sample = count_reset || (count8 && !ignore_count);
+      
 endmodule

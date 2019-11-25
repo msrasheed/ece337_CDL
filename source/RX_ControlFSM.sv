@@ -21,6 +21,7 @@ module RX_ControlFSM (clk,
   localparam PACKET_ACK = 3'd4;
   localparam PACKET_NAK = 3'd5;
   localparam PACKET_BAD = 3'd6;
+     localparam PACKET_STALL = 3'd7;
 
   localparam PID_OUT = 8'b00011110;
   localparam PID_IN = 8'b10010110;
@@ -28,7 +29,8 @@ module RX_ControlFSM (clk,
   localparam PID_DATA1 = 8'b10110100;
   localparam PID_ACK = 8'b00101101;
   localparam PID_NAK = 8'b10100101;
-
+   localparam PID_STALL = 8'b11100001;
+   
   localparam address = 11'd0;
 
   input wire clk;
@@ -38,7 +40,7 @@ module RX_ControlFSM (clk,
   input wire pass_5_bit;
   input wire pass_16_bit;
   input wire byte_done;
-  input wire [15:0] sr_val;
+  input wire [23:0] sr_val;
    input wire 	    shift_en;
    output reg 	    clear_byte_count;
    output reg 	    en_buffer;
@@ -49,7 +51,7 @@ module RX_ControlFSM (clk,
   reg [2:0] PID;
   reg [2:0] next_PID;
 
-  typedef enum reg [4:0] {IDLE, SYNC, PIDWAIT, CHECKPID, TOKEN, READTOKEN, CRC5, EOPTOKEN, SENDTOKEN, DATA, READDATA, READWRITE, CRC16, BADDATA, ACK, EOPACK, SENDACK, NAK, EOPNAK, SENDNAK} state_type;
+  typedef enum reg [5:0] {IDLE, SYNC, PIDWAIT, CHECKPID, TOKEN, READTOKEN, CRC5, EOPTOKEN, SENDTOKEN, DATA, READDATA, READWRITE, CRC16, BADDATA, ACK, EOPACK, SENDACK, NAK, EOPNAK, SENDNAK, READDATA2, STALL, EOPSTALL} state_type;
 
   state_type state;
   state_type next_state;
@@ -101,12 +103,25 @@ module RX_ControlFSM (clk,
       end else if (sr_val[7:0] == PID_NAK) begin
         next_state = NAK;
         next_PID = PACKET_NAK;
+      end else if (sr_val[7:0] == PID_STALL) begin
+	 next_state = STALL;
       end else begin
         next_state = IDLE; //Ignore any unrecognized PIDs
         next_PID = PACKET_IDLE;
       end
     end
-
+      STALL: begin
+	 next_RX_PID = PACKET_STALL;
+	 if (eop == 1'b1) begin
+	   next_state = EOPSTALL;
+      end
+    end // always_comb
+   EOPSTALL: begin
+      if (eop == 1'b1) begin
+	 next_state = IDLE;
+      end
+   end
+      
     TOKEN: begin
 //      clear_crc = 1'b1;
       if (byte_done == 1'b1) begin
@@ -161,7 +176,14 @@ module RX_ControlFSM (clk,
         next_state = READWRITE;
       end
     end
-
+      
+    READDATA2: begin
+      if (byte_done == 1'b1) begin
+        next_state = READWRITE;
+	 en_buffer = 1'b1;
+      end
+    end
+      
     READWRITE: begin
       en_buffer = 1'b1;
       if (eop == 1'b1) begin

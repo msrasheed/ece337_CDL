@@ -54,7 +54,7 @@ always_ff @(posedge clk, negedge n_rst) begin
 
 end
 
-assign serial_out = parallel_out[NUM_BITS -1];
+assign serial_out = (SHIFT_MSB) ? parallel_out[NUM_BITS - 1] : parallel_out[0];
 
 endmodule
 

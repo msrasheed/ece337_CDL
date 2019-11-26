@@ -182,7 +182,7 @@ PID_L: begin
         	next_data_pts = {4'd15, 4'd0};
 
         else if(go == 2'd1)
-        	next_data_pts = {4'd12, 4'd3};
+        	next_data_pts = {4'd3, 4'd12};
 
         else if(go == 2'd2)
         	next_data_pts = {4'd2, 4'd13};

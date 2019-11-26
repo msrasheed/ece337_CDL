@@ -60,6 +60,7 @@ logic [7:0] tb_send_data [];
 reg [7:0] encoder_out;
 
 integer period;				// Choosing which bit period to do
+integer count;				// For the Bit Stuffer
 
 // DUT Portmap
 usb_tx DUT
@@ -166,20 +167,41 @@ usb_tx DUT
 
 		integer i;
 	begin
-
+		count = 0;
 		for (i = 0; i < 8; i = i + 1)
 		begin
 			@(posedge tb_clk);
 			period += 1;
 			if (period == 3)
 				period = 0;
-			// Setting the expected outputs
-			tb_expected_dplus_out = expected_dplus[i];
-			tb_expected_dminus_out = expected_dminus[i];
-			tb_expected_tx_done = 1'b0;
-			tb_expected_get_tx_packet_data = 1'b0;
 
-			clock_bit;
+			if (count == 6) begin
+				// Setting the expected outputs to Bit Stuffing values
+				tb_expected_dplus_out = 1'b0;
+				tb_expected_dminus_out = 1'b1;
+				tb_expected_tx_done = 1'b0;
+				tb_expected_get_tx_packet_data = 1'b0;
+
+				clock_bit;
+	
+				i = i - 1;	// Need to revert back i so that it can go through the correct bit now
+			end
+			else begin
+				// Setting the expected outputs
+				tb_expected_dplus_out = expected_dplus[i];
+				tb_expected_dminus_out = expected_dminus[i];
+				tb_expected_tx_done = 1'b0;
+				tb_expected_get_tx_packet_data = 1'b0;
+
+				clock_bit;
+			end
+
+			if (count == 6)
+				count = 0;
+			else if (expected_dplus[i] == 1'b1)
+				count = count + 1;
+			else if (expected_dplus[i] == 1'b0)
+				count = 0;
 		end
 
 	end
@@ -191,6 +213,8 @@ usb_tx DUT
 		// Should be low for 2 bit periods
 		@(posedge tb_clk);
 		period += 1;
+		if (period == 3)
+			period = 0;
 		tb_expected_dplus_out = 1'b0;
 		tb_expected_dminus_out = 1'b0;
 		tb_expected_tx_done = 1'b0;
@@ -198,8 +222,12 @@ usb_tx DUT
 		// Wait 2 bit periods for dplus and dminus correct EOP
 		clock_bit;
 		@(posedge tb_clk);
+		period += 1;
+		if (period == 3)
+			period = 0;
 		clock_bit;
-
+		
+		@(posedge tb_clk);
 		// Tx_done = HIGH for 1 bit period and dplus and dminus go to IDLE states
 		tb_expected_dplus_out = 1'b1;
 		tb_expected_dminus_out = 1'b0;
@@ -213,8 +241,8 @@ usb_tx DUT
 		check_outputs;
 		tb_expected_tx_done = 1'b0;
 		// Wait more clock cycles
-		clock_bit;
 		@(posedge tb_clk);
+		clock_bit;
 	
 	end
 	endtask
@@ -222,12 +250,13 @@ usb_tx DUT
 	//calc 16 bit crc
   	task calc_crc16;
  	   input [7:0] senddata[];
+	   input integer bytes;
  	   integer i;
  	   integer j;
  	   logic test;
  	 begin
  	   tb_expected_crc = '1;
- 	   for (i = 0; i < 1; i = i + 1)
+ 	   for (i = 0; i < bytes; i = i + 1)
  	   begin
  	     for (j = 0; j < 8; j = j + 1)
  	     begin
@@ -260,20 +289,11 @@ usb_tx DUT
 	endtask
 
 	task encoder;
-		input [7:0] data;
-		input previous;
+		input [7:0] data;	// Data to encode
+		input previous;		// Indicates what value the dplus was before
 		integer i;
-		//integer j;
 	begin
-		//for (j = 0; j < data.size(); j++) begin
 			for (i = 0; i < 8; i++) begin
-				//if ((i == 0) && (j = 0)) begin
-				//	if (data[0] == 1'b1)
-						//encoder_out[0] = 1'b0;
-					//else
-						//encoder_out[0] = 1'b1;	
-				//end
-				//else if ( (i == 0) && (j != 0) ) begin
 				if (i == 1'b0) begin
 					if (previous == 1'b0) begin
 						if (data[0] == 1'b1)
@@ -283,9 +303,9 @@ usb_tx DUT
 					end
 					else begin
 						if (data[0] == 1'b1)
-							encoder_out[0] = 1'b0;
-						else
 							encoder_out[0] = 1'b1;
+						else
+							encoder_out[0] = 1'b0;
 					end
 				end
 				else begin
@@ -469,7 +489,6 @@ begin : TEST_PROC
 	period = 0;
 
 	// Define expected outputs for this test case
-	//tb_expected_crc = 16'b0001010100010101;	//16'hC0C0 11000000								/********** WHAT IS THIS VALUE **********/
 	tb_expected_dplus_packet = SYNC;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	tb_expected_dplus_out = 1'b1;
@@ -486,7 +505,7 @@ begin : TEST_PROC
 	tb_tx_packet_data_size = 7'b1;
 	tb_tx_packet_data = tb_test_packet_data[0];
 	tb_tx_packet = tx_DATA;
-	calc_crc16(tb_test_packet_data);
+	calc_crc16(tb_test_packet_data,1);
 	encoder(tb_expected_crc[7:0],1'b0);
 
 	// Wait 8 clock cycles before the dplus and dminus changes
@@ -517,8 +536,9 @@ begin : TEST_PROC
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
 
-	// Second Byte of the CRC
+	// Decoding the Second Byte of the CRC
 	encoder(tb_expected_crc[15:8],encoder_out[7]);
+	// Second Byte of the CDC
 	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
@@ -536,7 +556,6 @@ begin : TEST_PROC
 	period = 0;
 
 	// Define expected outputs for this test case
-	//tb_expected_crc = 16'h3FC1;	//16'hC0C0								/********** WHAT IS THIS VALUE **********/
 	tb_expected_dplus_packet = SYNC;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	tb_expected_dplus_out = 1'b1;
@@ -553,8 +572,8 @@ begin : TEST_PROC
 	tb_tx_packet_data_size = 7'b1;
 	tb_tx_packet_data = tb_test_packet_data[0];
 	tb_tx_packet = tx_DATA;
-	calc_crc16(tb_test_packet_data);
-	encoder(tb_expected_crc[7:0], 1'b0);
+	calc_crc16(tb_test_packet_data,1);
+	encoder(tb_expected_crc[7:0], 1'b1);
 
 	// Wait 8 clock cycles before the dplus and dminus changes
 	for (integer i = 0; i < 8; i++) begin
@@ -574,22 +593,9 @@ begin : TEST_PROC
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be the Actual Data from the Data Buffer
-	tb_expected_dplus_packet = 8'b10111111;
+	tb_expected_dplus_packet = 8'b11111111;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
-
-	// Extra due to Bit Stuffing
-	@(posedge tb_clk);
-	period += 1;
-	if (period == 3)
-		period = 0;
-	// Setting the expected outputs
-	tb_expected_dplus_out = 1'b1;
-	tb_expected_dminus_out = 1'b0;
-	tb_expected_tx_done = 1'b0;
-	tb_expected_get_tx_packet_data = 1'b0;
-
-	clock_bit;
 
 	// Should be the CRC value
 	// First Byte of the CRC
@@ -597,8 +603,9 @@ begin : TEST_PROC
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
 
-	// Second Byte of the CRC
+	// Ecoding the Second Byte of the CRC
 	encoder(tb_expected_crc[15:8], encoder_out[7]);
+	// Second Byte of the CRC
 	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
@@ -609,7 +616,7 @@ begin : TEST_PROC
 	/******************************************************
 	********** TEST CASE 5: Checking the DATA **************
 	*******************************************************/
-	/*
+	
 	@(negedge tb_clk);
 	tb_test_num += 1;
 	tb_test_case = "Random Data";
@@ -617,7 +624,6 @@ begin : TEST_PROC
 
 	// Define expected outputs for this test case
 	random_senddata(2);
-	calc_crc16(tb_send_data);
 
 	tb_expected_dplus_packet = SYNC;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
@@ -630,12 +636,13 @@ begin : TEST_PROC
 
 	@(posedge tb_clk);
 	// Setup packet info for debugging/verification signals
-	//tb_test_packet_data = tb_send_data[0];
+	tb_test_packet_data = new[2];
+	tb_test_packet_data[0] = tb_send_data[0];
 	tb_test_packet_data[1] = tb_send_data[1]; 
 	tb_tx_packet_data_size = 7'd2;
 	tb_tx_packet_data = tb_test_packet_data[0];
 	tb_tx_packet = tx_DATA;
-	//encoder(tb_send_data);
+	calc_crc16(tb_test_packet_data,2);
 
 	// Wait 8 clock cycles before the dplus and dminus changes
 	for (integer i = 0; i < 8; i++) begin
@@ -656,29 +663,33 @@ begin : TEST_PROC
 	tb_tx_packet_data = tb_test_packet_data[1];
 
 	// Should be the Actual Data from the Data Buffer
-	tb_expected_dplus_packet = encoder_out[0];
+	encoder(tb_test_packet_data[0],1'b0);		// After the DATA PID
+	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be the Actual Data from the Data Buffer
-	tb_expected_dplus_packet = encoder_out[1];
+	encoder(tb_test_packet_data[1],encoder_out[7]);
+	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 	
 	// Should be the CRC value
 	// First Byte of the CRC
-	tb_expected_dplus_packet = tb_expected_crc[7:0];
+	encoder(tb_expected_crc[7:0], encoder_out[7]);
+	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Second Byte of the CRC
-	tb_expected_dplus_packet = tb_expected_crc[15:8];
+	encoder(tb_expected_crc[15:8], encoder_out[7]);
+	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be EOP Cycle
 	check_EOP;	
-	*/
+	
 end
 
 endmodule 

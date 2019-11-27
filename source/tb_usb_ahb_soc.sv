@@ -447,6 +447,7 @@ task receive_byte;
   input logic save;
   integer i;
 begin
+  tb_outcoming_byte = 8'd0;
   for (i = 0; i < 8; i = i + 1) begin
     tb_dp_out_hist = (tb_dp_out_hist << 1) | tb_dplus_out;
     tb_dm_out_hist = (tb_dm_out_hist << 1) | tb_dminus_out;
@@ -478,7 +479,9 @@ begin
   tb_dp_out_hist = 2'b00 | tb_dplus_out;
   tb_dm_out_hist = 2'b00 | tb_dminus_out;
 
-  @(posedge tb_d_mode);
+  if (tb_d_mode != 1'b1) begin
+    @(posedge tb_d_mode);
+  end 
   @(tb_dplus_out);
   #(BIT_PERIOD / 2);
 

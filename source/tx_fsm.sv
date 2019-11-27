@@ -1,3 +1,4 @@
+
 module tx_fsm(input wire clk, input wire n_rst,input wire [1:0] tx_packet,  output reg tx_done, output reg crc_enable, output reg [7:0] data_pts, input wire [7:0] tx_packet_data, input wire [6:0] tx_packet_data_size,
               output reg [2:0] state_val,input wire flag, output reg load_enable, output reg enable_timer, input wire [15:0] crc, output reg clear_timer, output reg get_tx_packet, input wire shift_strobe, output reg clear_crc);
 
@@ -312,3 +313,4 @@ else begin
 end
 end
 endmodule
+

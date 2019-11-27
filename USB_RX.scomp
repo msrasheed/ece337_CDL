@@ -1,9 +1,0 @@
-QuestaSim-64 vlog 10.3b Compiler 2014.05 May 29 2014
-Start time: 14:39:27 on Nov 27,2019
-vlog -sv -work source_work source/USB_RX.sv 
--- Compiling module USB_RX
-
-Top level modules:
-	USB_RX
-End time: 14:39:27 on Nov 27,2019, Elapsed time: 0:00:00
-Errors: 0, Warnings: 0

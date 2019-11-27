@@ -10,7 +10,7 @@ module ahb_slave (
 		input wire clk,
 		input wire n_rst,
 		input wire hsel,
-		input wire [6:0] haddr,
+		input wire [7:0] haddr,
 		input wire [1:0] htrans,
 		input wire [1:0] hsize,
 		input wire hwrite,
@@ -61,6 +61,7 @@ ahb_addr_dec AAD(.clk(clk),
                  .n_rst(n_rst),
                  .hsel(hsel),
                  .haddr(haddr),
+                 .htrans(htrans),
                  .hsize(hsize),
                  .hwrite(hwrite),
                  .hready(hready),
@@ -72,6 +73,19 @@ ahb_addr_dec AAD(.clk(clk),
                  .bo_read(bo_read),
                  .ts_read(ts_read),
                  .ts_write(ts_write));
+
+//buffer ahb signals
+reg [1:0] prev_hsize;
+reg [7:0] prev_haddr;
+always_ff @ (posedge clk, negedge n_rst) begin
+  if (n_rst == 1'b0) begin
+    prev_hsize <= 2'd0;
+    prev_haddr <= 8'd0;
+  end else begin
+    prev_hsize <= hsize;
+    prev_haddr <= haddr;
+  end
+end
 
 //Registers
 localparam SR0 = 3'h0;
@@ -102,15 +116,15 @@ always_comb begin
 
   tx_data = '0;
   if (store_tx_data == 1'b1) begin
-    if (hsize == 2'b00) begin
-      case (haddr[1:0])
+    if (prev_hsize == 2'b00) begin
+      case (prev_haddr[1:0])
         2'b00: tx_data = {24'd0, hwdata[7:0]};
         2'b01: tx_data = {24'd0, hwdata[15:8]};
         2'b10: tx_data = {24'd0, hwdata[23:16]};
         2'b11: tx_data = {24'd0, hwdata[31:24]};
       endcase
-    end else if (hsize == 2'b01) begin
-      case (haddr[1])
+    end else if (prev_hsize == 2'b01) begin
+      case (prev_haddr[1])
         1'b0: tx_data = {16'd0, hwdata[15:0]};
         1'b1: tx_data = {16'd0, hwdata[31:16]};
       endcase
@@ -128,10 +142,31 @@ always_comb begin
   end 
   buffer_reserved = |regfile[TS0];
   tx_packet_data_size = regfile[TS0][6:0];
-  data_size = hsize;
+  //data_size = hsize;
+end
+
+
+//data size handling
+reg [1:0] nxt_data_size;
+always_ff @ (posedge clk, negedge n_rst) begin
+  if (n_rst == 1'b0) begin
+    data_size <= '0;
+  end else begin
+    data_size <= nxt_data_size;
+  end
+end
+
+always_comb begin
+  case (hsize)
+    2'd0: nxt_data_size = 2'd0;
+    2'd1: nxt_data_size = 2'd1;
+    2'd2: nxt_data_size = 2'd3;
+    2'd3: nxt_data_size = 2'd2;
+  endcase
 end
 
 //read handling
+/*
 reg [31:0] next_hrdata;
 always_ff @ (posedge clk, negedge n_rst) begin
   if (n_rst == 1'b0) begin
@@ -140,28 +175,29 @@ always_ff @ (posedge clk, negedge n_rst) begin
     hrdata <= next_hrdata;
   end
 end
+*/
 
 always_comb begin
-  next_hrdata = '0;
+  hrdata = '0;
   if (get_rx_data == 1'b1) begin
-    case (hsize)
-      2'b00: next_hrdata[7:0] = rx_data[7:0];
-      2'b01: next_hrdata[15:0] = rx_data[15:0];
-      2'b10: next_hrdata = rx_data;
+    case (prev_hsize)
+      2'b00: hrdata[7:0] = rx_data[7:0];
+      2'b01: hrdata[15:0] = rx_data[15:0];
+      2'b10: hrdata = rx_data;
     endcase
   end
   if (sr_read[0] == 1'b1)
-    next_hrdata[7:0] = next_regfile[SR0];
+    hrdata[7:0] = next_regfile[SR0];
   if (sr_read[1] == 1'b1)
-    next_hrdata[15:8] = next_regfile[SR1];
+    hrdata[15:8] = next_regfile[SR1];
   if (er_read[0] == 1'b1)
-    next_hrdata[23:16] = next_regfile[ER0];
+    hrdata[23:16] = next_regfile[ER0];
   if (er_read[1] == 1'b1)
-    next_hrdata[31:24] = next_regfile[ER1];
+    hrdata[31:24] = next_regfile[ER1];
   if (bo_read == 1'b1)
-    next_hrdata[7:0] = next_regfile[BO0];
+    hrdata[7:0] = next_regfile[BO0];
   if (ts_read == 1'b1)
-    next_hrdata[7:0] = next_regfile[TS0];
+    hrdata[7:0] = next_regfile[TS0];
 end
 
 endmodule

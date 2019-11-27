@@ -115,6 +115,6 @@ module RX_timer (clk,
                 .rollover_val(4'd8),
                 .rollover_flag(count8));
 
-   assign en_sample = count_reset || (count8 && !ignore_count);
+   assign en_sample = (count_reset || (count8 && !ignore_count)) && !sync;
       
 endmodule

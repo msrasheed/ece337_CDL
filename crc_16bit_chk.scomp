@@ -1,0 +1,9 @@
+QuestaSim-64 vlog 10.3b Compiler 2014.05 May 29 2014
+Start time: 14:39:25 on Nov 27,2019
+vlog -sv -work source_work source/crc_16bit_chk.sv 
+-- Compiling module crc_16bit_chk
+
+Top level modules:
+	crc_16bit_chk
+End time: 14:39:26 on Nov 27,2019, Elapsed time: 0:00:01
+Errors: 0, Warnings: 0

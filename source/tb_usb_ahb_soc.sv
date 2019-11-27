@@ -412,7 +412,8 @@ task send_packet;
 begin
   tb_numbyte = 0;
   tb_prev_vals_in = '0;
-  send_byte(8'h01);
+   @(posedge tb_clk);
+   send_byte(8'h01);
   send_byte({pid, ~pid});
   if (pid == PID_IN || pid == PID_OUT) begin
     for (i = 0; i < senddata.size(); i = i + 1) begin

@@ -34,14 +34,14 @@ end
 always_comb begin
 next_state = state;
 case (state)
-IDLE: begin
+IDLES: begin
         if (hsel == 1'b1 && htran != IDLE) begin
           next_state = ACTIVE;
         end
         end
 ACTIVE: begin
         if (htran == IDLE || hresp == 1'b1) begin
-          next_state = IDLE;
+          next_state = IDLES;
         end
         end
 endcase

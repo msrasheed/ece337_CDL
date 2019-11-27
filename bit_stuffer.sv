@@ -1,13 +1,9 @@
-module bit_stuffer(input wire clk, input wire serial_in, input wire n_rst, output reg disable_timer, output reg encoder_in, output reg next_encoder_in);
+module bit_stuffer(input wire clk, input wire serial_in, input wire n_rst, output reg disable_timer, output reg encoder_in, output reg next_encoder_in, output reg next_disable_timer);
 
 typedef enum bit [2:0] {S0 = 3'd1, S1 = 3'd2, S11 = 3'd3, S111 = 3'd4, S1111 = 3'd5, S11111 = 3'd6, S111111 = 3'd7} STATE;
 
 STATE PS;
 STATE NS;
-
-// Next State values for the register
-
-reg next_disable_timer;
 
 always_comb begin NEXT_STATE_LOGIC:
 case(PS)
@@ -79,3 +75,4 @@ end
 
 
 endmodule
+

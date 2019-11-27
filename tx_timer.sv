@@ -1,4 +1,4 @@
-module tx_timer(input wire clk, input wire enable_timer, input disable_timer, input wire n_rst, output reg shift_strobe, output reg [3:0] bit_count, input wire clear_timer, output reg byte_complete, output reg flag);
+module tx_timer(input wire clk, input wire enable_timer, input disable_timer,  input wire n_rst, output reg shift_strobe, output reg [3:0] bit_count, input wire clear_timer, output reg byte_complete, output reg flag);
 
 
 // The first value for NUM_CNT_BITS to be overwritten by the value of bit period. Defines how many clock cycles between consecutive bits
@@ -16,3 +16,4 @@ flex_counter#(
 
  assign shift_strobe = shift_strobe_bit_counter;
 endmodule
+

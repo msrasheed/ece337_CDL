@@ -6,6 +6,7 @@ STATE PS;
 STATE NS;
 
 always_comb begin NEXT_STATE_LOGIC:
+NS = PS;
 case(PS)
 
 S0: if (serial_in == 1)

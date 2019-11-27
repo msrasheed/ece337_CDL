@@ -111,7 +111,7 @@ USB_RX RXBLOCK(
 usb_tx TXBLOCK(
               .clk(clk),
               .n_rst(n_rst),
-              .tx_packet(tx_packet),
+              .tx_packet(tx_packet_data),
               .tx_packet_data_size(tx_packet_data_size),
               .tx_packet_data(tx_packet_data),
               .dPlus_out(dplus_out),

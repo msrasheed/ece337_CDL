@@ -7,7 +7,7 @@
 // Description: .
 
 
-module crc_16_bit_gen (
+module tx_crc_16_bit_gen (
 		input wire clk,
 		input wire n_rst,
 		input wire clear,
@@ -44,3 +44,4 @@ always_comb begin
   crc = ~Q;
 end
 endmodule
+

@@ -27,18 +27,15 @@ add wave -noupdate /tb_usb_ahb_soc/tb_dminus_in
 add wave -noupdate -radix decimal /tb_usb_ahb_soc/tb_numbyte
 add wave -noupdate -radix binary /tb_usb_ahb_soc/tb_byte_out
 add wave -noupdate -radix binary /tb_usb_ahb_soc/DUT/RXBLOCK/RX_packet
-add wave -noupdate /tb_usb_ahb_soc/DUT/RXBLOCK/controller/state
-add wave -noupdate /tb_usb_ahb_soc/DUT/RXBLOCK/shift_register/RX_packet_data
-add wave -noupdate /tb_usb_ahb_soc/DUT/RXBLOCK/shift_register/serial_in
 add wave -noupdate -divider {usb tx}
+add wave -noupdate /tb_usb_ahb_soc/DUT/TXBLOCK/tx_packet_data
+add wave -noupdate /tb_usb_ahb_soc/DUT/TXBLOCK/get_tx_packet
 add wave -noupdate /tb_usb_ahb_soc/tb_dplus_out
 add wave -noupdate /tb_usb_ahb_soc/tb_dminus_out
 add wave -noupdate /tb_usb_ahb_soc/tb_eop_out_detected
-add wave -noupdate /tb_usb_ahb_soc/tb_dm_out_hist
-add wave -noupdate /tb_usb_ahb_soc/tb_dp_out_hist
-add wave -noupdate /tb_usb_ahb_soc/tb_outcoming_byte
+add wave -noupdate -radix binary /tb_usb_ahb_soc/tb_outcoming_byte_stable
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {886940 ps} 0}
+WaveRestoreCursors {{Cursor 1} {48528190 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 162
 configure wave -valuecolwidth 100
@@ -54,4 +51,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {0 ps} {2020096 ps}
+WaveRestoreZoom {2414772 ps} {4434868 ps}

@@ -1,0 +1,80 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 d/home/ecegrid/a/mg119/ece337/ece337_CDL
+vtb_usb_ahb_soc
+Z1 DXx6 sv_std 3 std 0 22 <EOTafDcUY:cQeO^ICn]m3
+!s110 1574819239
+!i10b 1
+!s100 9d?`FnBnNHn8D4RFPS^A42
+IeF=CJzLdU]hSIjSYFd?P22
+Z2 V`JN@9S9cnhjKRR_L]QIcM3
+!s105 tb_usb_ahb_soc_sv_unit
+S1
+R0
+w1574819236
+8source/tb_usb_ahb_soc.sv
+Fsource/tb_usb_ahb_soc.sv
+Z3 L0 11
+Z4 OL;L;10.3b;59
+r1
+!s85 0
+31
+!s108 1574819239.213105
+!s107 source/tb_usb_ahb_soc.sv|
+!s90 -reportprogress|300|source/tb_usb_ahb_soc.sv|
+!i113 0
+Z5 o-L mtiAvm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+vtb_USB_RX
+R1
+!s110 1574545794
+!i10b 1
+!s100 NBR9W_f<PTbJW[ifTonl;0
+IVo37WZnNZ0^RI:Vbb3i<f3
+R2
+!s105 tb_USB_RX_sv_unit
+S1
+R0
+w1574545791
+8source/tb_USB_RX.sv
+Fsource/tb_USB_RX.sv
+R3
+R4
+r1
+!s85 0
+31
+!s108 1574545794.069897
+!s107 source/tb_USB_RX.sv|
+!s90 -reportprogress|300|source/tb_USB_RX.sv|
+!i113 0
+tCoverage 63 CoverExcludeDefault 1 CoverOpt 1 CoverShortCircuit 0
+ntb_@u@s@b_@r@x
+vusb_ahb_soc
+R1
+!s110 1574821442
+!i10b 1
+!s100 4P<RFZ[QkHm=VzmQXLPEA3
+IzbMebR[M;TRIDUl@23[VE2
+R2
+!s105 usb_ahb_soc_sv_unit
+S1
+R0
+w1574819482
+8source/usb_ahb_soc.sv
+Fsource/usb_ahb_soc.sv
+L0 9
+R4
+r1
+!s85 0
+31
+!s108 1574821442.232549
+!s107 source/usb_ahb_soc.sv|
+!s90 -reportprogress|300|source/usb_ahb_soc.sv|
+!i113 0
+R5

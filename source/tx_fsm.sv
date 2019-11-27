@@ -36,6 +36,7 @@ reg next_clear_crc;
 
 always_comb NS_LOGIC:
 begin
+NS = PS;
 next_get_tx_packet = 1'b0;
 next_clear_timer = clear_timer;
 next_enable_timer = enable_timer;
@@ -313,3 +314,4 @@ else begin
 end
 end
 endmodule
+

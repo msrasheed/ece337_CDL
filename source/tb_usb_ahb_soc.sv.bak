@@ -465,7 +465,7 @@ begin
     end
     #(BIT_PERIOD);
   end
-  if (save == 1'b1 && tb_eop_out_detected != 1'b1) begin
+  if (save == 1'b1) begin
     tb_data_received = new [tb_data_received.size() + 1] (tb_data_received);
     tb_data_received[tb_data_received.size() - 1] = tb_outcoming_byte;
   end

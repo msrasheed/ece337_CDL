@@ -1,5 +1,5 @@
 `timescale 1ns / 100ps
-module counter25 (input wire clk, input wire disable_timer, input wire n_rst, input wire count_enable, input wire clear, output reg roll_over, output reg [4:0] count_out, output reg flag);
+module tx_counter25 (input wire clk, input wire disable_timer, input wire n_rst, input wire count_enable, input wire clear, output reg roll_over, output reg [4:0] count_out, output reg flag);
 
   
 reg [4:0] next_count_out;

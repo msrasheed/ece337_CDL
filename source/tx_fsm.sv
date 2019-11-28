@@ -1,8 +1,7 @@
-
 module tx_fsm(input wire clk, input wire n_rst,input wire [1:0] tx_packet,  output reg tx_done, output reg crc_enable, output reg [7:0] data_pts, input wire [7:0] tx_packet_data, input wire [6:0] tx_packet_data_size,
               output reg [2:0] state_val,input wire flag, output reg load_enable, output reg enable_timer, input wire [15:0] crc, output reg clear_timer, output reg get_tx_packet, input wire shift_strobe, output reg clear_crc);
 
-typedef enum bit [4:0]{IDLE = 5'b00000, SYNC = 5'b00001, PID = 5'b00010, DATA_T = 5'b00011, CRC_UP = 5'b00100, CRC_LOW = 5'b00101, EOP1 = 5'b00110, EOP2 = 5'b00111, ACK = 5'b01000, NACK = 5'b01001, SYNC_L = 5'b01010, PID_L = 5'b01011, EOP3 = 5'b01100, TXDONE = 5'b01101, DATA_L = 5'b01110, CRC_UP_L = 5'b01111, CRC_LOW_L = 5'b10000} STATE;
+typedef enum bit [4:0]{IDLE = 5'b00000, SYNC = 5'b00001, PID = 5'b00010, DATA_T = 5'b00011, CRC_UP = 5'b00100, CRC_LOW = 5'b00101, EOP1 = 5'b00110, EOP2 = 5'b00111, ACK = 5'b01000, NACK = 5'b01001, SYNC_L = 5'b01010, PID_L = 5'b01011, EOP3 = 5'b01100, TXDONE = 5'b01101, DATA_L = 5'b01110, CRC_UP_L = 5'b01111, CRC_LOW_L = 5'b10000, DATA_G = 5'b10001, DATA_C = 5'b10010} STATE;
 
 STATE PS;
 STATE NS;
@@ -69,6 +68,7 @@ SYNC:  if (flag == 1'b1) begin
 PID_L: NS = PID;
 PID:  if ((flag == 1'b1)&& (go == 2'd1)) begin
       NS = DATA_L;
+      next_get_tx_packet = 1'b1;
       next_byte_count = byte_count + 1;
       end
 
@@ -85,6 +85,14 @@ PID:  if ((flag == 1'b1)&& (go == 2'd1)) begin
       else 
       NS = PID;
 DATA_L: begin
+	NS = DATA_G;
+	next_crc_enable = 1'b0;
+	end
+DATA_G: begin
+	next_crc_enable = 1'b0;
+	NS = DATA_C;
+	end
+DATA_C: begin
 	NS = DATA_T;
 	next_crc_enable = 1'b1;
 	end
@@ -96,9 +104,9 @@ DATA_T: begin
         end
         
         else if (flag == 1'b1) begin
+	next_get_tx_packet = 1'b1;
         NS = DATA_L;
         next_byte_count = byte_count + 1;
-        next_get_tx_packet = 1'b1;
         end
         next_crc_enable = 1'b1;
 	end
@@ -220,14 +228,19 @@ SYNC: begin
       next_state_val = 3'd2;
       end
 DATA_L: begin
-        next_load_enable = 1'd1;
-	next_data_pts = tx_packet_data;
         next_state_val = 3'd3;
-      
+	end
+DATA_G: begin
+        next_state_val = 3'd3;
+	next_load_enable = 1'd1;
+	next_data_pts = tx_packet_data;
+	end
+DATA_C: begin
+        next_state_val = 3'd3;
+        next_load_enable = 1'd1;
 	end
 DATA_T: begin
         next_load_enable = 1'd0;
-	next_data_pts = tx_packet_data;
         next_state_val = 3'd3;
 
 	end
@@ -314,4 +327,3 @@ else begin
 end
 end
 endmodule
-

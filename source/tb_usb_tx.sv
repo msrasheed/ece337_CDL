@@ -28,6 +28,10 @@ localparam ACK		= 8'b01001110;
 localparam NAK		= 8'b00110110;
 localparam DATA		= 8'b01000001; 
 
+typedef enum bit [2:0] {state_IDLE, state_SYNC, state_PID, state_DATA, state_CRC_LOW, state_CRC_UP, state_EOP} state;
+
+state STATUS;
+
 // DUT Inputs
 reg tb_clk;				// Generated Clock
 reg tb_n_rst;				// Negated Reset
@@ -105,7 +109,7 @@ usb_tx DUT
 	task check_outputs;
 	begin
 		// Wait a little bit before checking
-		#0.1;
+		#0.01;
 
 		// Checking D_plus
 		assert(tb_expected_dplus_out == tb_dplus_out)
@@ -206,6 +210,76 @@ usb_tx DUT
 
 	end
 	endtask
+	
+	task check_packet_DATA;
+		input [7:0] expected_dplus;
+		input [7:0] expected_dminus;
+		input [7:0] data;
+
+		integer i;
+	begin
+		count = 0;
+		for (i = 0; i < 8; i = i + 1)
+		begin
+			@(posedge tb_clk);
+			period += 1;
+			if (period == 3)
+				period = 0;
+
+			if (count == 7) begin
+				// Setting the expected outputs for getting the byte of data
+				tb_expected_dplus_out = expected_dplus[i];
+				tb_expected_dminus_out = expected_dminus[i];
+				tb_expected_tx_done = 1'b0;
+				tb_expected_get_tx_packet_data = 1'b0;
+				@ (posedge tb_clk);
+
+				// Wait a clock cycle for tx_done to be asserted to err on the side of caution
+				@(posedge tb_clk);
+				tb_expected_get_tx_packet_data = 1'b1;
+				check_outputs;
+				@(posedge tb_clk);
+				tb_expected_get_tx_packet_data = 1'b0;
+				tb_tx_packet_data = data;
+				check_outputs;
+
+				// One clock cycle has happened before this to indicate that it has changed
+				if (period == 0) begin
+					for (integer t = 0; t < 4; t++) begin
+						@(posedge tb_clk);
+						tb_tx_packet_data = 8'b0;
+						check_outputs;
+					end
+				end
+				else if (period == 1) begin
+					for (integer t = 0; t < 4; t++) begin
+						@(posedge tb_clk);
+						tb_tx_packet_data = 8'b0;
+						check_outputs;
+					end
+				end 
+				else if (period == 2) begin
+					for (integer t = 0; t < 5; t++) begin
+						@(posedge tb_clk);
+						tb_tx_packet_data = 8'b0;
+						check_outputs;
+					end
+				end
+			end
+			else begin
+				// Setting the expected outputs
+				tb_expected_dplus_out = expected_dplus[i];
+				tb_expected_dminus_out = expected_dminus[i];
+				tb_expected_tx_done = 1'b0;
+				tb_expected_get_tx_packet_data = 1'b0;
+
+				clock_bit;
+			end
+
+			count = count + 1;
+		end
+	end
+	endtask
 
 	task check_EOP;		// Checks the EOP
 	begin
@@ -237,9 +311,10 @@ usb_tx DUT
 		// Wait a clock cycle for tx_done to be asserted to err on the side of caution
 		@(posedge tb_clk);
 		tb_expected_tx_done = 1'b1;
-		@(posedge tb_clk);
 		check_outputs;
+		@(posedge tb_clk);
 		tb_expected_tx_done = 1'b0;
+		check_outputs;
 		// Wait more clock cycles
 		@(posedge tb_clk);
 		clock_bit;
@@ -423,14 +498,17 @@ begin : TEST_PROC
 	tb_tx_packet = tx_IDLE;
 
 	// Should be a SYNC
+	STATUS = state_SYNC;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be an ACK PID
 	tb_expected_dplus_packet = ACK;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
+	STATUS = state_PID;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 	
 	// Should be EOP Cycle
+	STATUS = state_EOP;
 	check_EOP;
 
 	/******************************************************
@@ -469,14 +547,17 @@ begin : TEST_PROC
 	tb_tx_packet = tx_IDLE;
 
 	// Should be a SYNC
+	STATUS = state_SYNC;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be an NAK PID
 	tb_expected_dplus_packet = NAK;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
+	STATUS = state_PID;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 	
 	// Should be EOP Cycle
+	STATUS = state_EOP;
 	check_EOP;
 
 	/******************************************************
@@ -518,22 +599,26 @@ begin : TEST_PROC
 	tb_tx_packet = tx_IDLE;
 
 	// Should be a SYNC
+	STATUS = state_SYNC;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be an DATA PID
 	tb_expected_dplus_packet = DATA;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
+	STATUS = state_PID;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be the Actual Data from the Data Buffer
 	tb_expected_dplus_packet = 8'b00110011;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
+	STATUS = state_DATA;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 	
 	// Should be the CRC value
 	// First Byte of the CRC
 	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
+	STATUS = state_CRC_LOW;
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Decoding the Second Byte of the CRC
@@ -541,9 +626,11 @@ begin : TEST_PROC
 	// Second Byte of the CDC
 	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
+	STATUS = state_CRC_UP;
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be EOP Cycle
+	STATUS = state_EOP;
 	check_EOP;
 
 	/******************************************************
@@ -570,7 +657,6 @@ begin : TEST_PROC
 	tb_test_packet_data = new[1];
 	tb_test_packet_data[0] = 8'b11111110; 
 	tb_tx_packet_data_size = 7'b1;
-	tb_tx_packet_data = tb_test_packet_data[0];
 	tb_tx_packet = tx_DATA;
 	calc_crc16(tb_test_packet_data,1);
 	encoder(tb_expected_crc[7:0], 1'b1);
@@ -585,22 +671,26 @@ begin : TEST_PROC
 	tb_tx_packet = tx_IDLE;
 
 	// Should be a SYNC
+	STATUS = state_SYNC;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be an DATA PID
 	tb_expected_dplus_packet = DATA;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
-	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
+	STATUS = state_PID;
+	check_packet_DATA (tb_expected_dplus_packet, tb_expected_dminus_packet,tb_test_packet_data[0]);
 
 	// Should be the Actual Data from the Data Buffer
 	tb_expected_dplus_packet = 8'b11111111;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
+	STATUS = state_DATA;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be the CRC value
 	// First Byte of the CRC
 	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
+	STATUS = state_CRC_LOW;
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Ecoding the Second Byte of the CRC
@@ -608,9 +698,11 @@ begin : TEST_PROC
 	// Second Byte of the CRC
 	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
+	STATUS = state_CRC_UP;
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be EOP Cycle
+	STATUS = state_EOP;
 	check_EOP;
 
 	/******************************************************
@@ -619,7 +711,7 @@ begin : TEST_PROC
 	
 	@(negedge tb_clk);
 	tb_test_num += 1;
-	tb_test_case = "Random Data";
+	tb_test_case = "Random Data for 2 Bytes";
 	period = 0;
 
 	// Define expected outputs for this test case
@@ -640,7 +732,6 @@ begin : TEST_PROC
 	tb_test_packet_data[0] = tb_send_data[0];
 	tb_test_packet_data[1] = tb_send_data[1]; 
 	tb_tx_packet_data_size = 7'd2;
-	tb_tx_packet_data = tb_test_packet_data[0];
 	tb_tx_packet = tx_DATA;
 	calc_crc16(tb_test_packet_data,2);
 
@@ -654,24 +745,27 @@ begin : TEST_PROC
 	tb_tx_packet = tx_IDLE;
 
 	// Should be a SYNC
+	STATUS = state_SYNC;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be an DATA PID
 	tb_expected_dplus_packet = DATA;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
-	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
-	tb_tx_packet_data = tb_test_packet_data[1];
+	STATUS = state_PID;
+	check_packet_DATA (tb_expected_dplus_packet, tb_expected_dminus_packet,tb_test_packet_data[0]);
 
-	// Should be the Actual Data from the Data Buffer
+	// Should be the Actual Data from the Data Buffer (1 byte)
 	encoder(tb_test_packet_data[0],1'b0);		// After the DATA PID
 	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
-	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
+	STATUS = state_DATA;
+	check_packet_DATA (tb_expected_dplus_packet, tb_expected_dminus_packet,tb_test_packet_data[1]);
 
-	// Should be the Actual Data from the Data Buffer
+	// Should be the Actual Data from the Data Buffer (2 byte)
 	encoder(tb_test_packet_data[1],encoder_out[7]);
 	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
+	STATUS = state_DATA;
 	check_packet_common (tb_expected_dplus_packet, tb_expected_dminus_packet);
 	
 	// Should be the CRC value
@@ -679,15 +773,18 @@ begin : TEST_PROC
 	encoder(tb_expected_crc[7:0], encoder_out[7]);
 	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
+	STATUS = state_CRC_LOW;
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Second Byte of the CRC
 	encoder(tb_expected_crc[15:8], encoder_out[7]);
 	tb_expected_dplus_packet = encoder_out;
 	tb_expected_dminus_packet = ~tb_expected_dplus_packet;
+	STATUS = state_CRC_UP;
 	check_packet_common(tb_expected_dplus_packet, tb_expected_dminus_packet);
 
 	// Should be EOP Cycle
+	STATUS = state_EOP;
 	check_EOP;	
 	
 end

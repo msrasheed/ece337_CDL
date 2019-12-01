@@ -343,7 +343,7 @@ begin
   tb_crc_16bit = '1;
   for (i = 0; i < senddata.size(); i = i + 1)
   begin
-    for (j = 7; j > -1; j = j - 1)
+    for (j = 0; j > 8; j = j + 1)
     begin
       test = senddata[i][j] ^ tb_crc_16bit[15];
       tb_crc_16bit = tb_crc_16bit << 1;
@@ -363,7 +363,9 @@ endtask
 task set_senddata_in_out;
 begin
   tb_send_data = new [2];
-  tb_send_data = {{tb_usb_addr, tb_usb_endpoint[3]}, {tb_usb_endpoint[2:0], tb_crc_5bit}};
+  tb_send_data[0] = {tb_usb_endpoint[0], tb_usb_addr};
+  tb_send_data[1] = {tb_crc_5bit[0], tb_crc_5bit[1], tb_crc_5bit[2], tb_crc_5bit[3], tb_crc_5bit[4], tb_usb_endpoint[3:1]};
+  //tb_send_data = {{tb_usb_addr, tb_usb_endpoint[3]}, {tb_usb_endpoint[2:0], tb_crc_5bit}};
 end
 endtask
 
@@ -385,8 +387,9 @@ task send_byte;
   integer i;
 begin
   tb_numbyte = tb_numbyte + 1;
-  tb_byte_out = data;
-  for (i = 7; i >= 0; i = i - 1)
+  //tb_byte_out = data;
+  tb_byte_out = {data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]};
+  for (i = 0; i < 8; i = i + 1)
   begin
     if (tb_prev_vals_in == 6'h3f) begin
       tb_dplus_in = tb_dminus_in;
@@ -413,8 +416,10 @@ begin
   tb_numbyte = 0;
   tb_prev_vals_in = '0;
 //   @(posedge tb_clk);
-   send_byte(8'h01);
-  send_byte({pid, ~pid});
+  //send_byte(8'h01);
+  send_byte(8'h80);
+  //send_byte({pid, ~pid});
+  send_byte({~pid, pid});
   if (pid == PID_IN || pid == PID_OUT) begin
     for (i = 0; i < senddata.size(); i = i + 1) begin
       send_byte(senddata[i]);
@@ -440,15 +445,18 @@ endtask
 
 logic tb_eop_out_detected = 1'b0;
 logic [1:0] tb_dm_out_hist, tb_dp_out_hist;
+logic [5:0] tb_prev_vals_out;
 logic [7:0] tb_outcoming_byte;
 logic [7:0] tb_outcoming_byte_stable;
 logic [7:0] tb_data_received [];
+integer tb_num_byte_out;
 
 task receive_byte;
   input logic save;
   integer i;
 begin
   tb_outcoming_byte = 8'd0;
+  tb_num_byte_out = tb_num_byte_out + 1;
   for (i = 0; i < 8; i = i + 1) begin
     tb_dp_out_hist = (tb_dp_out_hist << 1) | tb_dplus_out;
     tb_dm_out_hist = (tb_dm_out_hist << 1) | tb_dminus_out;
@@ -458,10 +466,15 @@ begin
       break;
     end
 
-    if (tb_dp_out_hist[0] != tb_dp_out_hist[1]) begin
-      tb_outcoming_byte[7 - i] = 1'b0;
+    if (tb_prev_vals_out == 6'h3f) begin
+      i = i - 1;
+      tb_prev_vals_in = '0;
+    end else if (tb_dp_out_hist[0] != tb_dp_out_hist[1]) begin
+      tb_outcoming_byte[i] = 1'b0;
+      tb_prev_vals_out = (tb_prev_vals_out << 1) | 1'b0;
     end else begin
-      tb_outcoming_byte[7 - i] = 1'b1;
+      tb_outcoming_byte[i] = 1'b1;
+      tb_prev_vals_out = (tb_prev_vals_out << 1) | 1'b1;
     end
     #(BIT_PERIOD);
   end
@@ -480,6 +493,8 @@ begin
   tb_data_received = new [0];
   tb_dp_out_hist = 2'b00 | tb_dplus_out;
   tb_dm_out_hist = 2'b00 | tb_dminus_out;
+  tb_prev_vals_out = '0;
+  tb_num_byte_out = 0;
 
   if (tb_d_mode != 1'b1) begin
     @(posedge tb_d_mode);
@@ -488,12 +503,12 @@ begin
   #(BIT_PERIOD / 2);
 
   receive_byte(1'b0);
-  if (tb_outcoming_byte != 8'h01) begin
+  if (tb_outcoming_byte != 8'h80) begin
     $error("sync byte not detected");
   end
 
   receive_byte(1'b0);
-  if (tb_outcoming_byte != {pid, ~pid}) begin
+  if (tb_outcoming_byte != {~pid, pid}) begin
     $error("expected pid not detected");
   end
 
@@ -523,7 +538,7 @@ begin
   if (pass == 1'b1) begin 
     for (i = 0; i < tb_data_received.size(); i = i + 1) begin
       if (tb_data_received[i] != data[i]) begin
-        $error("byte incorrect in received");
+        $error("byte incorrect in received %d", i);
         pass = 1'b0; 
         break;
       end
@@ -628,6 +643,8 @@ initial begin
   enqueue_transaction(1'b1, 1'b1, 8'h48, tb_test_data, BURST_SINGLE, 1'b0, 2'd0); 
 
   random_senddata(64);
+  tb_send_data[0] = 8'hff;
+  tb_send_data[1] = 8'h00;
   convert64byte_16trans(tb_send_data); 
   enqueue_transaction(1'b1, 1'b1, 8'd0, tb_test_data, BURST_INCR16, 1'b0, 2'd2);
   

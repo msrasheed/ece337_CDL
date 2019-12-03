@@ -41,7 +41,7 @@ tx_fsm FSM(.clk(clk), .n_rst(n_rst), .tx_packet(tx_packet), .state_val(state_val
            .tx_packet_data_size(tx_packet_data_size), .flag(flag_timer), .enable_timer(enable_timer_fsm), .crc(crc_to_fsm), .load_enable(load_enable_tx), .get_tx_packet(get_tx_packet),
            .clear_timer(clear_timer_fsm), .shift_strobe(shift_enable_timer), .clear_crc(clear_crc_fsm));
 
-tx_encoder ENC(.clk(shift_enable_timer), .n_rst(n_rst), .encoder_in(next_encoder_in_timer), .state_val(state_val_fsm), .d_plus(dPlus_out), .d_minus(dMinus_out), .serial_in(serial_out_pts));
+tx_encoder ENC(.clk(shift_enable_timer), .n_rst(n_rst), .encoder_in(encoder_in_timer), .state_val(state_val_fsm), .d_plus(dPlus_out), .d_minus(dMinus_out), .serial_in(serial_out_pts));
 
 endmodule
 

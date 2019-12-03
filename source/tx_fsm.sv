@@ -246,26 +246,26 @@ DATA_T: begin
 	end
 CRC_UP_L: begin
          next_load_enable = 1'd1;
-	next_data_pts = crc[7:0];
+	next_data_pts = crc[15:8];
         next_state_val = 3'd4;
 
         end
 CRC_UP: begin
         next_load_enable = 1'd0;
-	next_data_pts = crc[7:0];
+	next_data_pts = crc[15:8];
         next_state_val = 3'd4;
 
         end
 CRC_LOW_L:begin
 
 	 next_load_enable = 1'd1;
-         next_data_pts = crc[15:8];
+         next_data_pts = crc[7:0];
          next_state_val = 3'd5;
          end
 CRC_LOW: begin
 	
 	 next_load_enable = 1'd0;
-             next_data_pts = crc[15:8];
+             next_data_pts = crc[7:0];
          next_state_val = 3'd5;
          end
 

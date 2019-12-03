@@ -1,4 +1,4 @@
-module tx_encoder(input wire clk, input wire n_rst, input wire serial_in, input wire encoder_in, input wire[2:0] state_val, output reg d_plus, output reg d_minus);
+module encoder(input wire clk, input wire n_rst, input wire serial_in, input wire encoder_in, input wire[2:0] state_val, output reg d_plus, output reg d_minus);
 
 
 //Next State Register Values for d plus and d minus
@@ -17,8 +17,8 @@ next_remember_plus = remember_plus;
 next_remember_minus = remember_minus;
 
 if (encoder_in == 1'b1) begin
-next_remember_plus = ~d_plus;
-next_remember_minus = ~d_minus;
+next_remember_plus = d_plus;
+next_remember_minus = d_minus;
 next_d_plus = ~(d_plus);
 next_d_minus = ~(d_minus);
 

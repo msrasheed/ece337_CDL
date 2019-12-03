@@ -343,7 +343,7 @@ begin
   tb_crc_16bit = '1;
   for (i = 0; i < senddata.size(); i = i + 1)
   begin
-    for (j = 0; j > 8; j = j + 1)
+    for (j = 0; j < 8; j = j + 1)
     begin
       test = senddata[i][j] ^ tb_crc_16bit[15];
       tb_crc_16bit = tb_crc_16bit << 1;
@@ -419,7 +419,7 @@ begin
   //send_byte(8'h01);
   send_byte(8'h80);
   //send_byte({pid, ~pid});
-  send_byte({~pid, pid});
+  send_byte({~pid[0],~pid[1],~pid[2],~pid[3],pid[0], pid[1], pid[2],pid[3]});
   if (pid == PID_IN || pid == PID_OUT) begin
     for (i = 0; i < senddata.size(); i = i + 1) begin
       send_byte(senddata[i]);
@@ -468,7 +468,7 @@ begin
 
     if (tb_prev_vals_out == 6'h3f) begin
       i = i - 1;
-      tb_prev_vals_in = '0;
+      tb_prev_vals_out = '0;
     end else if (tb_dp_out_hist[0] != tb_dp_out_hist[1]) begin
       tb_outcoming_byte[i] = 1'b0;
       tb_prev_vals_out = (tb_prev_vals_out << 1) | 1'b0;
@@ -480,6 +480,8 @@ begin
   end
   if (save == 1'b1 && tb_eop_out_detected != 1'b1) begin
     tb_data_received = new [tb_data_received.size() + 1] (tb_data_received);
+    //$info("tb_data_received size is %d", tb_data_received.size());
+    //$info("tb_outcoming_byte is %d", tb_outcoming_byte);
     tb_data_received[tb_data_received.size() - 1] = tb_outcoming_byte;
   end
   tb_outcoming_byte_stable = tb_outcoming_byte;
@@ -508,7 +510,7 @@ begin
   end
 
   receive_byte(1'b0);
-  if (tb_outcoming_byte != {~pid, pid}) begin
+  if (tb_outcoming_byte != {~pid[0], ~pid[1],~pid[2], ~pid[3],pid[0],pid[1],pid[2],pid[3]}) begin
     $error("expected pid not detected");
   end
 
@@ -631,10 +633,10 @@ initial begin
   reset_dut();
   
   //*****************************************************************************
-  // Test Case: endpoint to host transfer
+  // Test Case 1: endpoint to host transfer
   //*****************************************************************************
   // Update Navigation Info
-  tb_test_case     = "Single Word Write";
+  tb_test_case     = "Endpoint to Host Transfer";
   tb_test_case_num = tb_test_case_num + 1;
 
   // Enqueue the needed transactions
@@ -660,8 +662,16 @@ initial begin
   convert16trans_64byte(tb_test_data);
   calc_crc16(tb_send_data);
   check_received(tb_send_data);
-  
+
+   //*****************************************************************************
+  // Test Case 2: Host to Endpoint transfer
+  //*****************************************************************************
+  // Update Navigation Info
+  tb_test_case     = "Host to Endpoint Transfer";
+  tb_test_case_num = tb_test_case_num + 1;
+
 
 end
 
 endmodule
+

@@ -700,7 +700,7 @@ initial begin
   
   #(CLK_PERIOD * 10);
 
-   //*****************************************************************************
+  //*****************************************************************************
   // Test Case 2: Host to Endpoint transfer
   //*****************************************************************************
   // Update Navigation Info
@@ -723,13 +723,71 @@ initial begin
   // Run the transactions via the model
   execute_transactions(17);
 
+  #(CLK_PERIOD * 10);
+
+  //*****************************************************************************
+  // Test Case 3: Host to Endpoint transfer error
+  //*****************************************************************************
+  // Update Navigation Info
+  tb_test_case     = "Host to Endpoint Transfer error";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  set_senddata_in_out();                   //sets tb_send_data to right values
+  send_packet(PID_OUT, tb_send_data);
+
+  tb_store_data[1] = 8'h05;
+  send_packet(PID_DATA0, tb_store_data);
+
+  receive_packet(PID_NAK);
+
+  convert64byte_16trans(tb_store_data);
+  enqueue_transaction(1'b1, 1'b0, 8'h40, '{32'h10000}, BURST_SINGLE, 1'b0, 2'd2);
+  
+  // Run the transactions via the model
+  execute_transactions(1);
+
+  #(CLK_PERIOD * 10);
+  
+  //*****************************************************************************
+  // Test Case 4: endpoint to host transfer no data
+  //*****************************************************************************
+  // Update Navigation Info
+  tb_test_case     = "Endpoint to Host Transfer: No Data";
+  tb_test_case_num = tb_test_case_num + 1;
 
 
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  set_senddata_in_out();                   //sets tb_send_data to right values
+  send_packet(PID_IN, tb_send_data);
+  
+  receive_packet(PID_NAK);
+  
+  #(CLK_PERIOD * 10);
 
-  for (i = 0; i < 16; i = i + 1) begin
-    tb_see_test_data = tb_test_data[i];
-    #(CLK_PERIOD);
-  end
+
+  //*****************************************************************************
+  // Test Case 5: endpoint to host transfer reserved
+  //*****************************************************************************
+  // Update Navigation Info
+  tb_test_case     = "Endpoint to Host Transfer: reserved";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  enqueue_transaction(1'b1, 1'b1, 8'h48, tb_test_data, BURST_SINGLE, 1'b0, 2'd0); 
+  execute_transactions(1);
+
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  set_senddata_in_out();                   //sets tb_send_data to right values
+  send_packet(PID_OUT, tb_send_data);
+
+  tb_store_data[1] = 8'h00;
+  send_packet(PID_DATA0, tb_store_data);
+  
+  receive_packet(PID_NAK);
+  
+  #(CLK_PERIOD * 10);
+
+
 end
 
 endmodule

@@ -291,6 +291,7 @@ logic [15:0] tb_crc_16bit;
 logic [7:0]  tb_send_data [];
 
 logic [7:0] tb_byte_out;
+logic [7:0] tb_byte_out_rev;
 logic [5:0] tb_prev_vals_in;
 integer     tb_numbyte;
 
@@ -387,9 +388,35 @@ task send_byte;
   integer i;
 begin
   tb_numbyte = tb_numbyte + 1;
-  //tb_byte_out = data;
+  tb_byte_out_rev = data;
   tb_byte_out = {data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]};
   for (i = 0; i < 8; i = i + 1)
+  begin
+    if (tb_prev_vals_in == 6'h3f) begin
+      tb_dplus_in = tb_dminus_in;
+      tb_dminus_in = ~tb_dplus_in;
+      tb_prev_vals_in = '0;
+      #(BIT_PERIOD);
+    end
+    if (data[i] == 1'b0) begin
+      tb_dplus_in = tb_dminus_in;
+      tb_dminus_in = ~tb_dplus_in;
+    end
+    tb_prev_vals_in = (tb_prev_vals_in << 1) | data[i];
+    #(BIT_PERIOD);
+  end
+end
+endtask
+
+//send a byte
+task send_bytemsb;
+  input [7:0] data;
+  integer i;
+begin
+  tb_numbyte = tb_numbyte + 1;
+  //tb_byte_out = data;
+  tb_byte_out = data;
+  for (i = 7; i > -1; i = i - 1)
   begin
     if (tb_prev_vals_in == 6'h3f) begin
       tb_dplus_in = tb_dminus_in;
@@ -425,10 +452,11 @@ begin
       send_byte(senddata[i]);
     end
   end else if (pid == PID_DATA0 || pid == PID_DATA1) begin
-    for (i = 0; i < senddata.size(); i = i + 1) begin
+    for (i = 0; i < senddata.size() - 2; i = i + 1) begin
       send_byte(senddata[i]);
     end 
-    //send_byte(tb_crc_16bit[15:8]);
+    send_bytemsb(senddata[senddata.size - 2]);
+    send_bytemsb(senddata[senddata.size - 1]);
     //send_byte(tb_crc_16bit[7:0]);
   end
   tb_numbyte = 0;
@@ -450,6 +478,8 @@ logic [7:0] tb_outcoming_byte;
 logic [7:0] tb_outcoming_byte_stable;
 logic [7:0] tb_data_received [];
 integer tb_num_byte_out;
+
+logic [7:0] tb_store_data [];
 
 task receive_byte;
   input logic save;
@@ -559,7 +589,7 @@ endtask
 //*****************************************************************************
 //*****************************************************************************
 
-task convert64byte_16trans;
+task convert64byte_16trans; //converts 8bit 64 byte array to 32bit 16 byte array
   input logic [7:0] data [];
   integer i;
 begin
@@ -567,6 +597,7 @@ begin
   tb_test_data = new [16];
   for (i = 0; i < 16; i = i + 1) begin
     tb_test_data[i] = {data[i*4 + 3], data[i*4 + 2], data[i*4 + 1], data[i*4]};
+    //$info("%h", {data[i*4 + 3], data[i*4 + 2], data[i*4 + 1], data[i*4]});
   end 
 end
 endtask
@@ -590,6 +621,8 @@ endtask
 // Main TB Process
 //*****************************************************************************
 //*****************************************************************************
+logic [31:0] tb_see_test_data;
+integer i;
 initial begin
   // Initialize Test Case Navigation Signals
   tb_test_case       = "Initialization";
@@ -663,6 +696,10 @@ initial begin
   calc_crc16(tb_send_data);
   check_received(tb_send_data);
 
+  send_packet(PID_ACK, tb_send_data);
+  
+  #(CLK_PERIOD * 10);
+
    //*****************************************************************************
   // Test Case 2: Host to Endpoint transfer
   //*****************************************************************************
@@ -670,7 +707,29 @@ initial begin
   tb_test_case     = "Host to Endpoint Transfer";
   tb_test_case_num = tb_test_case_num + 1;
 
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  set_senddata_in_out();                   //sets tb_send_data to right values
+  send_packet(PID_OUT, tb_send_data);
 
+  send_packet(PID_DATA0, tb_data_received);
+
+  tb_store_data = tb_data_received;
+  receive_packet(PID_ACK);
+
+  convert64byte_16trans(tb_store_data);
+  enqueue_transaction(1'b1, 1'b0, 8'h40, '{32'd01}, BURST_SINGLE, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 8'd0, tb_test_data, BURST_INCR16, 1'b0, 2'd2);
+  
+  // Run the transactions via the model
+  execute_transactions(17);
+
+
+
+
+  for (i = 0; i < 16; i = i + 1) begin
+    tb_see_test_data = tb_test_data[i];
+    #(CLK_PERIOD);
+  end
 end
 
 endmodule

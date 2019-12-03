@@ -50,7 +50,7 @@ module RX_bit_stuff_detector (clk,
 	  
 	  COUNT4: begin
              if (decoded_bit == 1'b1) begin
-		next_state = SKIP;
+		next_state = COUNT5;
              end
 	  end
 	  

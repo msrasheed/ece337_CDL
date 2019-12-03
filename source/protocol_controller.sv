@@ -242,6 +242,9 @@ module protocol_controller
 		tx_packet_next = IDLE;
 		d_mode_next = 1'b0;
 		case (NS)
+                        IDLE:           begin
+						
+                                        end
 			// Host to Endpoint
 			RX_ACTIVE:	begin
 						tx_error_next = 1'b0;
@@ -307,6 +310,7 @@ module protocol_controller
 						end
 			EH_DONE:	begin
 						// Everything low in this state
+						clear_next = 1'b1;
 					end
 
 			// Endpoint to Host: Host sends back a NACK

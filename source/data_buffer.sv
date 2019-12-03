@@ -42,10 +42,10 @@ module data_buffer
 // Initializations
 	reg [7:0] mem [63:0];
 	reg [7:0] next_mem [63:0];
-	reg [6:0] write_pointer;
-	reg [6:0] write_pointer_next;
-	reg [6:0] read_pointer;
-	reg [6:0] read_pointer_next;
+	reg [7:0] write_pointer;
+	reg [7:0] write_pointer_next;
+	reg [7:0] read_pointer;
+	reg [7:0] read_pointer_next;
 	reg [31:0] rx_data_next;
 	reg [7:0] tx_packet_data_next;
 	reg [6:0] buffer_occupancy_next;
@@ -54,7 +54,7 @@ module data_buffer
 	always_ff @ (posedge clk, negedge n_rst)
 	begin : WRITE_LOGIC
 		if (n_rst == 1'b0)
-			write_pointer <= 6'b0;
+			write_pointer <= 7'b0;
 		else
 			write_pointer <= write_pointer_next;
 	end
@@ -63,8 +63,8 @@ module data_buffer
 	begin : WRITE_LOGIC_NEXT
 		write_pointer_next = write_pointer;
 		if (clear == 1'b1)
-			write_pointer_next = 6'b0;
-		else if (write_pointer == 6'd63)
+			write_pointer_next = 7'b0;
+		else if (write_pointer == 7'd64)
 			write_pointer_next = write_pointer;
 		else if (store_tx_data == 1'b1 && buffer_reserved == 1'b1) begin
 			case (data_size)
@@ -84,7 +84,7 @@ module data_buffer
 	always_ff @ (posedge clk, negedge n_rst)
 	begin : READ_LOGIC
 		if (n_rst == 1'b0)
-			read_pointer <= 6'b0;
+			read_pointer <= 7'b0;
 		else
 			read_pointer <= read_pointer_next;
 	end
@@ -93,8 +93,8 @@ module data_buffer
 	begin : READ_LOGIC_NEXT
 		read_pointer_next = read_pointer;
 		if (clear == 1'b1)
-			read_pointer_next = 6'b0;
-		else if (read_pointer == 6'd63)
+			read_pointer_next = 7'b0;
+		else if (read_pointer == 7'd64)
 			read_pointer_next = read_pointer;
 		else if (get_rx_data == 1'b1) begin			// From AHB
 			case(data_size)	
@@ -128,19 +128,19 @@ module data_buffer
 	begin : RX_DATA_AND_TX_DATA_OUTPUT_LOGIC
 		if (n_rst == 1'b0) begin
 			tx_packet_data <= 8'b0;
-			rx_data <= 32'b0;
+			//rx_data <= 32'b0;
 		end
 		else begin
 			tx_packet_data <= tx_packet_data_next;
-			rx_data <= rx_data_next;
+			//rx_data <= rx_data_next;
 		end
 	end
 
 	always_comb						// CHANGE: Made it so that the get_rx_data was based off of the data_size
 	begin : RX_DATA_AND_TX_DATA_NS_LOGIC
-		tx_packet_data_next = 8'b0;
-		rx_data_next = 32'b0;
-		if (get_rx_data == 1'b1) begin
+		tx_packet_data_next = tx_packet_data;
+		rx_data = {mem[read_pointer+3], mem[read_pointer+2], mem[read_pointer+1], mem[read_pointer]};
+		/*if (get_rx_data == 1'b1) begin
 			case(data_size)
 				2'd0: begin					// Just 1 byte
 					rx_data_next[7:0] = mem[read_pointer];
@@ -167,7 +167,7 @@ module data_buffer
 					rx_data_next[31:24] = mem[(read_pointer + 7'd3)];
 				      end
 			endcase
-		end
+		end*/
 		if (get_tx_packet_data == 1'b1)
 			tx_packet_data_next = mem[read_pointer];
 	end

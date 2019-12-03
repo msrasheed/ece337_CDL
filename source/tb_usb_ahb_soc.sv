@@ -747,7 +747,7 @@ initial begin
   // Run the transactions via the model
   execute_transactions(1);
 
-  #(CLK_PERIOD * 10);
+  #(CLK_PERIOD * 20);
   
   //*****************************************************************************
   // Test Case 4: endpoint to host transfer no data

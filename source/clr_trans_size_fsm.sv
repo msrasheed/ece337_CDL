@@ -26,6 +26,7 @@ always_ff @ (posedge clk, negedge n_rst) begin
 end
 
 always_comb begin
+  next_state = state;
   case (state)
     IDLE: begin
            if (buff_resv == 1'b1) begin

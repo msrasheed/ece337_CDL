@@ -16,7 +16,7 @@ include /home/ecegrid/a/ece337/Course_Prod/course_make_vars
 # (do not include the source folder in the name)
 # NOTE: YOU WILL NEED TO SET THIS VARIABLE'S VALUE WHEN WORKING WITH HEIRARCHICAL DESIGNS
 # AND THE AUTOMATED GRADING SYSTEM
-COMPONENT_FILES	:= ahb_addr_dec.sv ahb_slave_cntrlr.sv ahb_slave.sv clr_trans_size_fsm.sv crc_16bit_chk.sv crc_5bit_chk.sv data_buffer.sv flex_counter.sv flex_pts_sr.sv flex_stp_sr.sv protocol_controller.sv pts_8_bit.sv RX_bit_stuff_detector.sv RX_byte_counter.sv RX_ControlFSM.sv RX_decoder.sv RX_SR.sv RX_timer.sv tx_bit_stuffer.sv tx_counter25.sv tx_counter.sv tx_crc_16_bit_gen.sv tx_encoder.sv tx_flex_counter.sv tx_flex_pts_sr.sv tx_fsm.sv tx_pts_8_bit.sv tx_timer.sv usb_ahb_soc.sv USB_RX.sv usb_tx.sv
+COMPONENT_FILES	:= ahb_addr_dec.sv ahb_slave_cntrlr.sv ahb_slave.sv clr_trans_size_fsm.sv crc_16bit_chk.sv crc_5bit_chk.sv data_buffer.sv flex_counter.sv flex_pts_sr.sv flex_stp_sr.sv protocol_controller.sv pts_8_bit.sv RX_bit_stuff_detector.sv RX_byte_counter.sv RX_ControlFSM.sv RX_decoder.sv RX_SR.sv RX_timer.sv tx_bit_stuffer.sv tx_counter25.sv tx_counter.sv tx_crc_16_bit_gen.sv tx_encoder.sv tx_flex_counter.sv tx_flex_pts_sr.sv tx_fsm.sv tx_pts_8_bit.sv tx_timer.sv USB_RX.sv usb_tx.sv
 
 # Specify the name of the top level file (do not include the source folder in the name)
 # NOTE: YOU WILL NEED TO SET THIS VARIABLE'S VALUE WHEN WORKING WITH HEIRARCHICAL DESIGNS
@@ -268,8 +268,8 @@ tbsim_%_mapped: $(M_WORK_LIB)/% $(M_WORK_LIB)/tb_%
 
 # Set the default value of the clock name and clock period to an empty string so that clock timing will
 # only be activated in the SYN_CMDS definition if they were overwritten at invocation
-CLOCK_NAME 		:=
-CLOCK_PERIOD	:=
+CLOCK_NAME 		:= clk
+CLOCK_PERIOD	:= 10
 
 # Set the default value of the source files for sub modules to be an empty string so that
 # it will only be used if overwritten at invocation

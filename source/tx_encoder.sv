@@ -16,6 +16,9 @@ begin
 next_remember_plus = remember_plus;
 next_remember_minus = remember_minus;
 
+next_d_plus = d_plus;
+next_d_minus = d_minus;
+
 if (encoder_in == 1'b1) begin
 next_remember_plus = ~d_plus;
 next_remember_minus = ~d_minus;

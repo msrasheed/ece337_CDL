@@ -194,7 +194,7 @@ PID_L: begin
         	next_data_pts = {4'd3, 4'd12};
 
         else if(go == 2'd2)
-        	next_data_pts = {4'd2, 4'd13};
+        	next_data_pts = {4'd11, 4'd4};
 
         else if(go == 2'd3)
         	next_data_pts = {4'd10, 4'd5};
@@ -210,7 +210,7 @@ PID:  begin
         	next_data_pts = {4'd3, 4'd12};
 
         else if(go == 2'd2)
-        	next_data_pts = {4'd2, 4'd13};
+        	next_data_pts = {4'd11, 4'd4};
 
         else if(go == 2'd3)
         	next_data_pts = {4'd10, 4'd5};

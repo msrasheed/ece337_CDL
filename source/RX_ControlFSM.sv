@@ -51,7 +51,7 @@ module RX_ControlFSM (clk,
   reg [2:0] PID;
   reg [2:0] next_PID;
 
-  typedef enum reg [5:0] {IDLE, SYNC, PIDWAIT, CHECKPID, TOKEN, READTOKEN, CRC5, EOPTOKEN, SENDTOKEN, DATA, READDATA, READWRITE, CRC16, BADDATA, ACK, EOPACK, SENDACK, NAK, EOPNAK, SENDNAK, READDATA2, STALL, EOPSTALL} state_type;
+  typedef enum reg [5:0] {IDLE, EEOP, SYNC, PIDWAIT, CHECKPID, TOKEN, READTOKEN, CRC5, EOPTOKEN, SENDTOKEN, DATA, READDATA, READWRITE, CRC16, BADDATA, ACK, EOPACK, SENDACK, NAK, EOPNAK, SENDNAK, READDATA2, STALL, EOPSTALL} state_type;
 
   state_type state;
   state_type next_state;
@@ -194,13 +194,19 @@ module RX_ControlFSM (clk,
     CRC16: begin
        if (shift_en == 1'b1) begin
 	  if ((pass_16_bit == 1'b1) && (eop == 1'b1)) begin
-             next_state = IDLE;
+             next_state = EEOP;
 	  end else begin
              next_state = BADDATA;
 	  end
        end
     end
        
+    EEOP: begin
+	if (shift_en == 1'b1) begin
+	  next_state = IDLE;
+	end
+    end
+
     BADDATA: begin
       next_RX_PID = PACKET_BAD;
       next_state = IDLE;

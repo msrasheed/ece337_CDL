@@ -33,8 +33,11 @@ begin
         
         next_count_bit = count_bit;
         next_roll_over = 1'b0;
-	
-	if (disable_timer == 1'b1) begin
+	if(clear == 1'b1) begin
+        next_count_bit = '0;
+        end
+        
+       else if (disable_timer == 1'b1) begin
 		next_count_bit = count_bit;
 		if (count_out == 5'd7) begin
        		next_roll_over = 1'b1;

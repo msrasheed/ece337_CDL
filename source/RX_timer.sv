@@ -23,7 +23,9 @@ module RX_timer (clk,
    
   reg last_d_plus;
   reg last_d_minus;
-
+   reg sync_d_minus;
+   reg sync_d_plus;
+   
 
   typedef enum reg [3:0] {IDLE, WAIT1, WAIT2, WAIT3, WAIT4} state_type;
 
@@ -32,7 +34,7 @@ module RX_timer (clk,
 
   always_comb begin //edge detector
     sync = 1'b0;
-    if ((last_d_plus != d_plus) || (last_d_minus != d_minus)) begin
+    if ((last_d_plus != sync_d_plus) || (last_d_minus != sync_d_minus)) begin
       sync = 1'b1;
     end
   end
@@ -41,7 +43,12 @@ module RX_timer (clk,
     if (n_rst == 1'b0) begin
       last_d_plus <= 1'b0;
       last_d_minus <= 1'b0;
+       sync_d_plus <= 1'b0;
+       sync_d_minus <= 1'b0;
+       
     end else begin
+      sync_d_plus <= last_d_plus;
+      sync_d_minus <= last_d_minus;
       last_d_plus <= d_plus;
       last_d_minus <= d_minus;
     end

@@ -60,7 +60,7 @@ module USB_RX(clk,
 
   RX_SR shift_register (.clk(clk),
                         .n_rst(n_rst),
-                        .shift_strobe(very_delayed_en_sample),
+                        .shift_strobe(very_delayed_en_sample && !delayed_eop),
                         .serial_in(decoded_bit),
                         .ignore_bit(ignore_bit),
                         .RX_packet_data(SR_data));

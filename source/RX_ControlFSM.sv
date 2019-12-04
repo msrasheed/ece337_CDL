@@ -82,6 +82,11 @@ module RX_ControlFSM (clk,
       if (byte_done == 1'b1) begin
         next_state = CHECKPID;
       end
+	if (shift_en == 1'b1) begin
+		if (eop == 1'b1) begin
+	  		next_state = BADDATA;
+		end
+	end
     end
 
     CHECKPID: begin
@@ -174,12 +179,18 @@ module RX_ControlFSM (clk,
 //      clear_crc = 1'b1;
       if (byte_done == 1'b1) begin
         next_state = READDATA;
+	if (eop == 1'b1) begin
+	  next_state = BADDATA;
+	end
       end
     end
 
     READDATA: begin
       if (byte_done == 1'b1) begin
         next_state = READWRITE;
+	if (eop == 1'b1) begin
+	  next_state = BADDATA;
+	end
       end
     end
       

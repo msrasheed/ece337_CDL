@@ -480,6 +480,7 @@ logic [1:0] tb_dm_out_hist, tb_dp_out_hist;
 logic [5:0] tb_prev_vals_out;
 logic [7:0] tb_outcoming_byte;
 logic [7:0] tb_outcoming_byte_stable;
+logic [7:0] tb_outcoming_byte_stable_rev;
 logic [7:0] tb_data_received [];
 integer tb_num_byte_out;
 
@@ -519,6 +520,7 @@ begin
     tb_data_received[tb_data_received.size() - 1] = tb_outcoming_byte;
   end
   tb_outcoming_byte_stable = tb_outcoming_byte;
+  tb_outcoming_byte_stable_rev = {tb_outcoming_byte[0], tb_outcoming_byte[1], tb_outcoming_byte[2], tb_outcoming_byte[3], tb_outcoming_byte[4], tb_outcoming_byte[5], tb_outcoming_byte[6], tb_outcoming_byte[7]};
 end
 endtask
 

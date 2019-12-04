@@ -35,7 +35,9 @@ module tb_data_buffer();
   string tb_test_case;
    integer i;
    logic [63:0][7:0] tb_test_array;
-   logic [31:0] temp_array;
+   logic [31:0] expected_rx_array;
+   logic expected_buffer_occupancy;
+   logic [7:0] expected_tx_packet_data;
 
   //*****************************************************************************
   // Clock Generation Block
@@ -125,7 +127,7 @@ module tb_data_buffer();
       input logic [1:0] data_size;
       input logic [31:0] expected_data;
       begin
-	temp_array = expected_data;
+	expected_rx_array = expected_data;
     	@(posedge tb_clk);
 
     	 case(data_size)
@@ -201,6 +203,7 @@ module tb_data_buffer();
     	 @(posedge tb_clk);//wait a clock cycle after asserting
     	 tb_get_tx_packet_data = 1'b1;
     	 @(posedge tb_clk);//wait a clock cycle after asserting
+	 expected_tx_packet_data = expected_byte;
     	 #1
     	 assert(expected_byte == tb_tx_packet_data)
     	   //$info("Test case %s: correct tx_packet_data sent to usb tx", tb_test_case);
@@ -215,6 +218,7 @@ module tb_data_buffer();
    task check_buffer_occupancy;
       input logic [6:0] expected_occupancy;
       begin
+	 expected_buffer_occupancy = expected_occupancy;
     	 #1
     	 assert(tb_buffer_occupancy == expected_occupancy)
     	   //$info("Test case %s: correct output for buffer occupancy", tb_test_case);
@@ -353,7 +357,7 @@ module tb_data_buffer();
      
      @(posedge tb_clk);			// CHANGE: Needed to make the tb_buffer_reserved back to LOW
      tb_buffer_reserved = 1'b0;
-
+     expected_tx_packet_data = 0;
 
      //large data test cases
      //
@@ -388,6 +392,7 @@ module tb_data_buffer();
 
      @(posedge tb_clk);			// CHANGE: Needed to make the tb_buffer_reserved back to LOW
      tb_buffer_reserved = 1'b0;
+     expected_tx_packet_data = 0;
 
      //64 byte test cases
      //

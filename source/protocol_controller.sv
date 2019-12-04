@@ -47,7 +47,7 @@ module protocol_controller
 				// RX Cycle
 				RX_ACTIVE, HE_DATA, HE_GOOD, SEND_ACK, HE_PACKET_DONE_WAIT, DATA_BUFFER_WAIT,
 				// HE: Data Still in Data Buffer Error 
-				HE_ERROR_WAIT, HE_ERROR_START, HE_TX_ERROR, HE_PACKET_ERROR_WAIT,
+				HE_ERROR_WAIT, HE_ERROR_WAIT_DATA, HE_ERROR_START, HE_TX_ERROR, HE_PACKET_ERROR_WAIT,
 				// TX Cycle
 				AHB_STORE, TX_ACTIVE, EH_DATA, EH_PACKET_DONE_WAIT, EH_DONE,
 				// EH: Host sends back a NAK
@@ -137,9 +137,13 @@ module protocol_controller
 
 			// Host to Endpoint Data Still in Data Buffer
 			HE_ERROR_WAIT: begin
-						if (rx_packet == RX_IDLE)
-							NS = HE_ERROR_START;				
+						if (rx_packet == RX_DATA)
+							NS = HE_ERROR_WAIT_DATA;				
 					end
+			HE_ERROR_WAIT_DATA: begin
+						if (rx_packet == RX_IDLE)
+							NS = HE_ERROR_START;
+					    end
 			HE_ERROR_START:	begin
 						NS = HE_TX_ERROR;		// Start of sending back a NAK
 					end

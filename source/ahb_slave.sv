@@ -106,9 +106,15 @@ always_ff @ (posedge clk, negedge n_rst) begin
 end
 
 //write handling
+reg data_ready_internal;
 always_comb begin
   next_regfile = regfile;
-  next_regfile[SR0] = {7'd0, rx_data_ready};
+  if (buffer_occupancy == 7'd0) begin
+    data_ready_internal = 1'b0;
+  end else begin
+    data_ready_internal = rx_data_ready & ~rx_error;
+  end
+  next_regfile[SR0] = {7'd0, data_ready_internal};
   next_regfile[SR1] = {6'd0, tx_transfer_active, rx_transfer_active};
   next_regfile[ER0] = {7'd0, rx_error};
   next_regfile[ER1] = {7'd0, tx_error};

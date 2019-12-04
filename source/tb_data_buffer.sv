@@ -127,7 +127,8 @@ module tb_data_buffer();
       input logic [1:0] data_size;
       input logic [31:0] expected_data;
       begin
-	expected_rx_array = expected_data;
+//	$info("expecteddata: %d", expected_data);
+//	expected_rx_array = expected_data;
     	@(posedge tb_clk);
 
     	 case(data_size)
@@ -247,6 +248,8 @@ module tb_data_buffer();
      begin
       for(j = 0; j < num_bytes; j+=4) begin
 	 temp = {test_array[j+3],test_array[j+2],test_array[j+1],test_array[j]};
+       	 expected_rx_array = temp;
+	 //$info("here");
 	 slave_request_data(2'd3, temp);
       end
     end
@@ -255,12 +258,16 @@ module tb_data_buffer();
   task slave_request_data_array_2; //for 2 bytes
     input logic [6:0] num_bytes;
     input logic [63:0][7:0] test_array;
+    input logic [3:0][7:0] data;
     integer j;
-     logic [15:0] temp;
+     logic [31:0] temp;
      begin
 
       for(j = 0; j < num_bytes; j+=2) begin
-	 temp = test_array[j+:2];
+	 temp = {test_array[j+3],test_array[j+2],test_array[j+1],test_array[j]};
+       	 expected_rx_array = {data[3], data[2], data[1], data[0]};
+	 //$info("temp: %d, test_array[j+3]: %d", temp, test_array[j+3]);
+	 //temp = test_array[j+:2];
 	 slave_request_data(2'd1, temp);
       end
 
@@ -270,12 +277,15 @@ module tb_data_buffer();
    task slave_request_data_array_1; //for 1 byte
     input logic [6:0] num_bytes;
     input logic [63:0][7:0] test_array;
+    input logic [3:0][7:0] data;
     integer j;
-     logic [7:0] temp;
+     logic [31:0] temp;
      begin
 
       for(j = 0; j < num_bytes; j++) begin
-	 temp = test_array[j];
+	 temp = {test_array[j+3],test_array[j+2],test_array[j+1],test_array[j]};
+       	 expected_rx_array = {data[3], data[2], data[1], data[0]};
+	 //temp = test_array[j];
 	 slave_request_data(2'd0, temp);
       end
     end
@@ -330,9 +340,9 @@ module tb_data_buffer();
      //
      tb_test_case = "small data AHB read";
      tb_test_data = tb_test_array[3:0];
-     slave_request_data_array_2(2, tb_test_array[1:0]); // request the data to the AHB slave
-     slave_request_data_array_1(1, tb_test_array[2]); // request the data to the AHB slave
-     slave_request_data_array_1(1, tb_test_array[3]); // request the data to the AHB slave
+     slave_request_data_array_2(2, tb_test_array[1:0], tb_test_array[3:0]); // request the data to the AHB slave
+     slave_request_data_array_1(1, tb_test_array[2], {8'd0, 8'd0, tb_test_array[3:2]}); // request the data to the AHB slave
+     slave_request_data_array_1(1, tb_test_array[3], {8'd0, 8'd0, 8'd0, tb_test_array[3]}); // request the data to the AHB slave
      @(posedge tb_clk);
      //
      //Reset DUT then write 2 bytes of data from AHB slave

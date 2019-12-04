@@ -55,7 +55,7 @@ module protocol_controller
 				// RX Data Bad
 				HE_BAD,
 				// TX Needs to Send a NAK
-				EH_ERROR_START, EH_TX_ERROR, EH_PACKET_ERROR_WAIT
+				WAIT_RX_BAD, WAIT_RX_DATA, WAIT_RX_IDLE, EH_ERROR_START, EH_TX_ERROR, EH_PACKET_ERROR_WAIT
 				} stateType;
 
 	stateType PS;
@@ -110,7 +110,11 @@ module protocol_controller
 						if (rx_packet == IDLE)
 							NS = HE_GOOD;		// Host packet is good
 						else if (rx_packet == RX_BAD)
-							NS = HE_BAD;		// Host packet is bad
+							NS = WAIT_RX_BAD;		// Host packet is bad
+					end
+                        WAIT_RX_BAD:    begin
+						if (rx_packet == RX_IDLE)
+							NS = HE_BAD;
 					end
 			HE_GOOD:	begin
 						NS = SEND_ACK;			// Tell TX to send the ACK
@@ -148,9 +152,17 @@ module protocol_controller
 						if ( (tx_packet_data_size == buffer_occupancy) && (rx_packet == RX_IN) )
 							NS = TX_ACTIVE;			// Can send data to the Host
 						else if (rx_packet == RX_OUT)
-							NS = EH_ERROR_START;		// Host tried to do something while AHB not done
+							NS = WAIT_RX_DATA;		// Host tried to do something while AHB not done
 						else if ( (tx_packet_data_size != buffer_occupancy) && (rx_packet == RX_IN) )
 							NS = EH_ERROR_START;		// Host tried to do something while AHB not done
+					end
+			WAIT_RX_DATA:   begin
+						if (rx_packet == RX_DATA)
+							NS = WAIT_RX_IDLE;
+				 	end
+			WAIT_RX_IDLE:   begin
+						if (rx_packet == RX_IDLE)
+							NS = EH_ERROR_START;
 					end
 			TX_ACTIVE:	begin
 						NS = EH_DATA;	// Wait till the data from the AHB has been sent

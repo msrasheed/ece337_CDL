@@ -77,7 +77,7 @@ module RX_timer (clk,
 
       WAIT2: begin
         count_enable = 1'b0;
-        next_state = WAIT3;
+        next_state = WAIT4;
       end
 
       WAIT3: begin

@@ -393,12 +393,14 @@ begin
   for (i = 0; i < 8; i = i + 1)
   begin
     if (tb_prev_vals_in == 6'h3f) begin
+      @(negedge tb_clk);
       tb_dplus_in = tb_dminus_in;
       tb_dminus_in = ~tb_dplus_in;
       tb_prev_vals_in = '0;
       #(BIT_PERIOD);
     end
     if (data[i] == 1'b0) begin
+      @(negedge tb_clk);
       tb_dplus_in = tb_dminus_in;
       tb_dminus_in = ~tb_dplus_in;
     end
@@ -419,12 +421,14 @@ begin
   for (i = 7; i > -1; i = i - 1)
   begin
     if (tb_prev_vals_in == 6'h3f) begin
+      @(negedge tb_clk);
       tb_dplus_in = tb_dminus_in;
       tb_dminus_in = ~tb_dplus_in;
       tb_prev_vals_in = '0;
       #(BIT_PERIOD);
     end
     if (data[i] == 1'b0) begin
+      @(negedge tb_clk);
       tb_dplus_in = tb_dminus_in;
       tb_dminus_in = ~tb_dplus_in;
     end
@@ -696,6 +700,7 @@ initial begin
   calc_crc16(tb_send_data);
   check_received(tb_send_data);
 
+  #(CLK_PERIOD);
   send_packet(PID_ACK, tb_send_data);
   
   #(CLK_PERIOD * 10);

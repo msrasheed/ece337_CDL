@@ -72,7 +72,6 @@ string                 tb_check_tag;
 logic                  tb_mismatch;
 logic                  tb_check;
 integer                tb_i;
-
 //*****************************************************************************
 // General System signals
 //*****************************************************************************
@@ -382,7 +381,19 @@ tb_expected_data_size ='0;
 end
 endtask
 
+task configure_reset_inputs;
+begin
 
+tb_rx_data_ready = '0;
+tb_rx_transfer_active = '0;
+tb_rx_error = '0;
+tb_tx_transfer_active = '0;
+tb_tx_error = '0;
+tb_buffer_occupancy = '0;
+tb_rx_data = '0;
+
+end
+endtask
 
 //*****************************************************************************
 // Main TB Process
@@ -409,7 +420,7 @@ initial begin
   tb_transaction_error    = 1'b0;
   tb_transaction_size     = 3'd0;
   tb_transaction_burst    = 3'd0;
-
+  tb_i = '0;
   // Wait some time before starting first test case
   #(0.1);
 
@@ -425,7 +436,7 @@ initial begin
   
    // Reset the DUT
    reset_dut();
-
+   configure_reset_inputs();
    // Compare values to reset values, set by the task reset_outputs()
    configure_reset_outputs();
 
@@ -442,14 +453,90 @@ initial begin
   input bit [1:0] size;                                // Define Size
 */
   //*****************************************************************************
-  // Test Case: Singleton Write
+  // Test Case: Single Value Write
   //*****************************************************************************
   // Update Navigation Info
-  tb_test_case     = "Single Word Write";
+  tb_test_case     = "Single Value, 1 byte write";
   tb_test_case_num = tb_test_case_num + 1;
 
   // Reset the DUT to isolate from prior test case
   reset_dut();
+  configure_reset_inputs();
+
+  // Enqueue the needed transactions
+  tb_test_data = '{4'd10};
+
+  //Enqueue a Write: Write to this Slave (transaction is not fake), write mode (1'd1)
+  // to DEC address 64, with the value as 32'd1000, SINGLE BURST (3'd0) as HBURST Code
+  // with no expected error, and the value of HSIZE as 2.
+
+  enqueue_transaction(1'b1, 1'b1, 7'h0, tb_test_data, BURST_SINGLE, 1'b0, 2'd0);   
+  
+  // Run the transactions via the model
+  execute_transactions(1);
+  check_outputs("after 1 byte write to address 0");
+  #(CLK_PERIOD * 3);
+  
+  //*****************************************************************************
+  // Test Case: Single Value Write
+  //*****************************************************************************
+  // Update Navigation Info
+  tb_test_case     = "Single Value, 2 byte write";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  // Reset the DUT to isolate from prior test case
+  reset_dut();
+  configure_reset_inputs();
+
+  // Enqueue the needed transactions
+  tb_test_data = '{16'd100};
+
+  //Enqueue a Write: Write to this Slave (transaction is not fake), write mode (1'd1)
+  // to DEC address 64, with the value as 32'd1000, SINGLE BURST (3'd0) as HBURST Code
+  // with no expected error, and the value of HSIZE as 2.
+
+  enqueue_transaction(1'b1, 1'b1, 7'h0, tb_test_data, BURST_SINGLE, 1'b0, 2'd1);   
+  
+  // Run the transactions via the model
+  execute_transactions(1);
+  check_outputs("after 2 byte write to address 0");
+  #(CLK_PERIOD * 3);
+
+//*****************************************************************************
+  // Test Case: Single Value Write
+  //*****************************************************************************
+  // Update Navigation Info
+  tb_test_case     = "Single Value, 3 byte write";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  // Reset the DUT to isolate from prior test case
+  reset_dut();
+  configure_reset_inputs();
+
+  // Enqueue the needed transactions
+  tb_test_data = '{24'd250};
+
+  //Enqueue a Write: Write to this Slave (transaction is not fake), write mode (1'd1)
+  // to DEC address 64, with the value as 32'd1000, SINGLE BURST (3'd0) as HBURST Code
+  // with no expected error, and the value of HSIZE as 2.
+
+  enqueue_transaction(1'b1, 1'b1, 7'h0, tb_test_data, BURST_SINGLE, 1'b0, 2'd2);   
+  
+  // Run the transactions via the model
+  execute_transactions(1);
+  check_outputs("after 3 byte write to address 0");
+  #(CLK_PERIOD * 3);
+
+  //*****************************************************************************
+  // Test Case: Single Value Write
+  //*****************************************************************************
+  // Update Navigation Info
+  tb_test_case     = "Single Value Write";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  // Reset the DUT to isolate from prior test case
+  reset_dut();
+  configure_reset_inputs();
 
   // Enqueue the needed transactions
   tb_test_data = '{32'd1000};
@@ -458,33 +545,15 @@ initial begin
   // to DEC address 64, with the value as 32'd1000, SINGLE BURST (3'd0) as HBURST Code
   // with no expected error, and the value of HSIZE as 2.
 
-  enqueue_transaction(1'b1, 1'b1, 7'd64, tb_test_data, BURST_SINGLE, 1'b0, 2'd2);   
+  enqueue_transaction(1'b1, 1'b1, 7'h3f, tb_test_data, BURST_SINGLE, 1'b0, 2'd3);   
   
   // Run the transactions via the model
   execute_transactions(1);
 
+  check_outputs("after 4 byte write to address 0");
+  #(CLK_PERIOD * 3);
 
-  //*****************************************************************************
-  // Test Case: Back-to-Back Write/Read
-  //*****************************************************************************
-  // Update Navigation Info
-  tb_test_case     = "Back to back Write/Read";
-  tb_test_case_num = tb_test_case_num + 1;
 
-  // Reset the DUT to isolate from prior test case
-  reset_dut();
-
-  // Enqueue the needed transactions
-  tb_test_data = '{32'hADAD8000};
-  // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 7'd70, tb_test_data, BURST_SINGLE, 1'b0, 2'd2);
-  // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 7'd70, tb_test_data, BURST_SINGLE, 1'b0, 2'd2);
-  
-  // Run the transactions via the model
-  execute_transactions(2);
-
-  
   //*****************************************************************************
   // Test Case: INCR4 Burst
   //*****************************************************************************
@@ -494,6 +563,7 @@ initial begin
 
   // Reset the DUT to isolate from prior test case
   reset_dut();
+  configure_reset_inputs();
 
   // Enqueue the needed transactions
   // Create the Test Data for the burst
@@ -502,13 +572,17 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 7'd64, tb_test_data, BURST_INCR4, 1'b0, 2'd2);  // 4 WRITES
+  enqueue_transaction(1'b1, 1'b1, 7'h3f, tb_test_data, BURST_INCR4, 1'b0, 2'd2);  // 4 WRITES
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 7'd64, tb_test_data, BURST_INCR4, 1'b0, 2'd2);  // 4 READS
+  enqueue_transaction(1'b1, 1'b0, 7'h3f, tb_test_data, BURST_INCR4, 1'b0, 2'd2);  // 4 READS
   
   // Run the transactions via the model
   execute_transactions(8);
-  
+  tb_expected_data_size = 2'd3;
+
+  check_outputs("after back to back read/write INCR4 bursts");
+  #(CLK_PERIOD * 3);
+
   //*****************************************************************************
   // Test Case: INCR8 Burst
   //*****************************************************************************
@@ -518,6 +592,7 @@ initial begin
 
   // Reset the DUT to isolate from prior test case
   reset_dut();
+  configure_reset_inputs();
 
   // Enqueue the needed transactions
   // Create the Test Data for the burst
@@ -526,13 +601,14 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 7'd64, tb_test_data, BURST_INCR8, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'h3f, tb_test_data, BURST_INCR8, 1'b0, 2'd2);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 7'd64, tb_test_data, BURST_INCR8, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'h3f, tb_test_data, BURST_INCR8, 1'b0, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(16);
-  
+   check_outputs("after attempting to do a INCR8 burst for the data buffer");
+
   //*****************************************************************************
   // Test Case: INCR16 Burst
   //*****************************************************************************
@@ -542,6 +618,7 @@ initial begin
 
   // Reset the DUT to isolate from prior test case
   reset_dut();
+  configure_reset_inputs();
 
   // Enqueue the needed transactions
   // Create the Test Data for the burst
@@ -550,13 +627,14 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 7'd64, tb_test_data, BURST_INCR16, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'h3f, tb_test_data, BURST_INCR16, 1'b0, 2'd2);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 7'd64, tb_test_data, BURST_INCR16, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'h3f, tb_test_data, BURST_INCR16, 1'b0, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(32);
-  
+  check_outputs("after attempting to do a INCR16 burst for the data buffer");
+
   //*****************************************************************************
   // Test Case: WRAP4 Burst
   //*****************************************************************************
@@ -566,6 +644,7 @@ initial begin
 
   // Reset the DUT to isolate from prior test case
   reset_dut();
+  configure_reset_inputs();
 
   // Enqueue the needed transactions
   // Create the Test Data for the burst
@@ -574,13 +653,14 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 7'd68, tb_test_data, BURST_WRAP4, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'h3f, tb_test_data, BURST_WRAP4, 1'b0, 2'd2);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 7'd68, tb_test_data, BURST_WRAP4, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'h3f, tb_test_data, BURST_WRAP4, 1'b0, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(8);
-  
+  check_outputs("after attempting to execute a WRAP4 write burst for the data buffer");
+
   //*****************************************************************************
   // Test Case: WRAP8 Burst
   //*****************************************************************************
@@ -590,6 +670,7 @@ initial begin
 
   // Reset the DUT to isolate from prior test case
   reset_dut();
+  configure_reset_inputs();
 
   // Enqueue the needed transactions
   // Create the Test Data for the burst
@@ -598,12 +679,13 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 7'd68, tb_test_data, BURST_WRAP8, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'h3f, tb_test_data, BURST_WRAP8, 1'b0, 2'd2);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 7'd68, tb_test_data, BURST_WRAP8, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'h3f, tb_test_data, BURST_WRAP8, 1'b0, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(16);
+  check_outputs("after attempting to execute a WRAP8 write/read burst for the data buffer");
   
   //*****************************************************************************
   // Test Case: WRAP16 Burst
@@ -611,9 +693,10 @@ initial begin
   // Update Navigation Info
   tb_test_case     = "WRAP16 Bursts";
   tb_test_case_num = tb_test_case_num + 1;
-
+  
   // Reset the DUT to isolate from prior test case
   reset_dut();
+  configure_reset_inputs();
 
   // Enqueue the needed transactions
   // Create the Test Data for the burst
@@ -622,74 +705,70 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 7'd68, tb_test_data, BURST_WRAP16, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'h3f, tb_test_data, BURST_WRAP16, 1'b0, 2'd2);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 7'd68, tb_test_data, BURST_WRAP16, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'h3f, tb_test_data, BURST_WRAP16, 1'b0, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(32);
-
-
+  check_outputs("after attempting to execute a WRAP16 write/read burst for the data buffer");
+  
   //*****************************************************************************
-  // Test Case: INCR Burst
+  // Test Case: Write to unallocated address 0x46
   //*****************************************************************************
   // Update Navigation Info
-  tb_test_case     = "INCR Bursts";
+  tb_test_case     = "Write to unallocated address 0x46";
   tb_test_case_num = tb_test_case_num + 1;
 
   // Reset the DUT to isolate from prior test case
   reset_dut();
-
-  // Enqueue the needed transactions
-  // Create the Test Data for the burst
-  tb_test_data = new[7];
-  for(tb_i = 0; tb_i < 7; tb_i++)begin
-    tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
-  end
-  // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 7'd64, tb_test_data, BURST_INCR, 1'b0, 2'd2);
-  // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 7'd64, tb_test_data, BURST_INCR, 1'b0, 2'd2);
-  
-  // Run the transactions via the model
-  execute_transactions(14);
-  
-  
-  //*****************************************************************************
-  // Test Case: Erroneous Singleton Write
-  //*****************************************************************************
-  // Update Navigation Info
-  tb_test_case     = "Erroneous Single Word Write";
-  tb_test_case_num = tb_test_case_num + 1;
-
-  // Reset the DUT to isolate from prior test case
-  reset_dut();
+  configure_reset_inputs();
 
   // Enqueue the needed transactions
   tb_test_data = '{32'd1000}; 
-  enqueue_transaction(1'b1, 1'b1, 7'd32, tb_test_data, BURST_SINGLE, 1'b1, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'h46, tb_test_data, BURST_SINGLE, 1'b1, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(1);
+  check_outputs("after attempting to write to unallocated address 0x46");
 
-
-//*****************************************************************************
-  // Test Case: Erroneous Singleton Read
+  //*****************************************************************************
+  // Test Case: Write to Read-Only address 0x42
   //*****************************************************************************
   // Update Navigation Info
-  tb_test_case     = "Erroneous Single Word Read";
+  tb_test_case     = "Write to READ-ONLY address 0x42";
   tb_test_case_num = tb_test_case_num + 1;
 
   // Reset the DUT to isolate from prior test case
   reset_dut();
+  configure_reset_inputs();
 
   // Enqueue the needed transactions
   tb_test_data = '{32'd1000}; 
-  enqueue_transaction(1'b1, 1'b0, 7'd127, tb_test_data, BURST_SINGLE, 1'b1, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'h42, tb_test_data, BURST_SINGLE, 1'b1, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(1);
+  check_outputs("after attempting to write to a READ-ONLY address, 0x42");
+  //*****************************************************************************
+  // Test Case: Invalid Singleton Read of Invalid Address
+  //*****************************************************************************
+  // Update Navigation Info
 
+  tb_test_case     = "Attempting to Read from an Invalid Address";
+  tb_test_case_num = tb_test_case_num + 1;
+
+  // Reset the DUT to isolate from prior test case
+  reset_dut();
+  configure_reset_inputs();
+
+  // Enqueue the needed transactions
+  tb_test_data = '{32'd1000}; 
+  enqueue_transaction(1'b1, 1'b0, 7'h78, tb_test_data, BURST_SINGLE, 1'b1, 2'd2);
+  
+  // Run the transactions via the model
+  execute_transactions(1);
+  check_outputs("after attempting to read from an unallocated address, 0x78");
 
   //*****************************************************************************
   // Test Case: Erroneous INCR4 Write Burst
@@ -700,6 +779,7 @@ initial begin
 
   // Reset the DUT to isolate from prior test case
   reset_dut();
+  configure_reset_inputs();
 
   // Enqueue the needed transactions
   // Create the Test Data for the burst
@@ -708,11 +788,12 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 7'd32, tb_test_data, BURST_INCR4, 1'b1, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'h78, tb_test_data, BURST_INCR4, 1'b1, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(8);
-  
+  check_outputs("after attempting to do a write burst to an unallocated address");
+
   //*****************************************************************************
   // Test Case: Erroneous INCR4 Read Burst
   //*****************************************************************************
@@ -722,6 +803,7 @@ initial begin
 
   // Reset the DUT to isolate from prior test case
   reset_dut();
+  configure_reset_inputs();
 
   // Enqueue the needed transactions
   // Create the Test Data for the burst
@@ -730,10 +812,11 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b0, 7'd127, tb_test_data, BURST_INCR4, 1'b1, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'h7f, tb_test_data, BURST_INCR4, 1'b1, 2'd2);
   
   // Run the transactions via the model
   execute_transactions(8);
+  check_outputs("after attempting to do a read burst of an unallocated address");
 
 /*
   input bit for_dut;                                   // Is the transaction for the DUT ?
@@ -744,43 +827,73 @@ initial begin
   input bit expected_error;                            // Define expected error
   input bit [1:0] size;                                // Define Size
 */
- 
+
   //*****************************************************************************
-  // Test Case: Status Register Check: RX TRANSFER ACTIVE
+  // Test Case: Endpoint To Host Transfer Size Register Check
   //*****************************************************************************
-  // Update Navigation Info
-  tb_test_case     = "Status Check: RX transfer active";
+  tb_test_case     = "Endpoint to Host Transfer Size Register";
   tb_test_case_num = tb_test_case_num + 1;
 
   // Reset the DUT to isolate from prior test case
   reset_dut();
+  configure_reset_inputs();
   
-  // Mimic a reception sequence by asserting rx transfer active, and then checking 
-  // status register
+  //Setting the transfer size to 7 bytes
+  tb_test_data = '{4'd4};
 
-  tb_rx_transfer_active = 1'b1;    
-  
-  tb_test_data = '{32'd512};
+  // Enqueue a write to register 0x48 so that the Endpoint to Host Transfer Size
+  // is updated to 7 [bytes]
 
-  // Enqueue a read to the ststus register: Check BIT 8
-  enqueue_transaction(1'b1, 1'b0, 7'h41, tb_test_data, BURST_SINGLE, 1'b0, 2'd1);
+  enqueue_transaction(1'b1, 1'b1, 7'h48, tb_test_data, BURST_SINGLE, 1'b0, 2'd0);
   
   // Run the transactions via the model
   execute_transactions(1);
-
+ 
+  //Populate the Data Buffer
+  tb_test_data = new[4];
+  for(tb_i = 0; tb_i < 4; tb_i++)begin
+    tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
+  end
+  // Enqueue the write
+  enqueue_transaction(1'b1, 1'b1, 7'h3f, tb_test_data, BURST_INCR4, 1'b0, 2'd2);  // 4 WRITES
+  // Enqueue the 'check' read
+  enqueue_transaction(1'b1, 1'b0, 7'h3f, tb_test_data, BURST_INCR4, 1'b0, 2'd2);  // 4 READS
+  
+  // Run the transactions via the model
+  execute_transactions(8);
   // Initialize all expected values to 0
   configure_reset_outputs();
-
-  // Set the test signals: For a rx transfer active, the data buffer must be reserved
-  // and get_rx_data must be asserted
-  
+ 
+  // At this point, buffer reserved must be asserted..
   tb_expected_buffer_reserved = 1'b1;
-  tb_expected_get_rx_data = 1'b1;
+  tb_expected_tx_packet_data_size = 7'd7;
+  check_outputs("after initiating the Endpoint to Host Transfer Sequence");
+
+  // To simulate the termination of the the transfer sequence, deassert tx_transfer_active
   
+  tb_tx_transfer_active = 1'b1;
+  @(posedge tb_clk);
+  @(posedge tb_clk);
+
+  tb_tx_transfer_active = 1'b0;
+  @(posedge tb_clk);
+  
+  // At this point, the Endpoint to Host Transfer Size register must be cleared, and
+  // buffer reserved must be deasserted 1410
+  
+  tb_test_data = '{4'd0};
+  
+  // Enqueue a read to register 0x48 [Endpoint to Host Transfer Size Register]
+  // and ensure it is cleared
+
+  enqueue_transaction(1'b1, 1'b0, 7'h48, tb_test_data, BURST_SINGLE, 1'b0, 2'd0);
+
+  // The buffer reserved should be deasserted at this point..
+ 
+  tb_expected_buffer_reserved = 1'b0;
+
   // Check for buffer reserved and get_rx_data
-  check_outputs("after RX transfer was initiated");
-  
-  
+  check_outputs("after termination of Endpoint to Host Transfer Sequence");
 end
 
 endmodule

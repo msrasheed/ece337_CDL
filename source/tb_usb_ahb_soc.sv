@@ -723,6 +723,16 @@ initial begin
   tb_store_data = tb_data_received;
   receive_packet(PID_ACK);
 
+  ///////iffy case
+  calc_crc5(tb_usb_addr, tb_usb_endpoint); //sets tb_crc_5bit variable
+  set_senddata_in_out();                   //sets tb_send_data to right values
+  send_packet(PID_OUT, tb_send_data);
+
+  send_packet(PID_DATA0, tb_data_received);
+
+  receive_packet(PID_NAK);
+  /////////
+
   convert64byte_16trans(tb_store_data);
   enqueue_transaction(1'b1, 1'b0, 8'h40, '{32'd01}, BURST_SINGLE, 1'b0, 2'd2);
   enqueue_transaction(1'b1, 1'b0, 8'd0, tb_test_data, BURST_INCR16, 1'b0, 2'd2);

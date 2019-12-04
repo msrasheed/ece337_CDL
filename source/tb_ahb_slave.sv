@@ -235,7 +235,7 @@ end
 endtask
 
 //*****************************************************************************
-// Bus Model Usage Related TB Tasks
+// Bus Model Usage Related TB Tasks920
 //*****************************************************************************
 // Task to pulse the reset for the bus model
 task reset_model;
@@ -627,10 +627,13 @@ initial begin
     tb_test_data[tb_i] = {16'hABCD,tb_i[15:0]};
   end
   // Enqueue the write
-  enqueue_transaction(1'b1, 1'b1, 7'h3f, tb_test_data, BURST_INCR16, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b1, 7'h3f, tb_test_data, BURST_INCR16, 1'b0, 2'd3);
   // Enqueue the 'check' read
-  enqueue_transaction(1'b1, 1'b0, 7'h3f, tb_test_data, BURST_INCR16, 1'b0, 2'd2);
+  enqueue_transaction(1'b1, 1'b0, 7'h3f, tb_test_data, BURST_INCR16, 1'b0, 2'd3);
+  configure_reset_outputs();
   
+  tb_expected_data_size = 2'd3;
+
   // Run the transactions via the model
   execute_transactions(32);
   check_outputs("after attempting to do a INCR16 burst for the data buffer");
@@ -865,7 +868,7 @@ initial begin
   configure_reset_outputs();
  
   // At this point, buffer reserved must be asserted..
-  tb_expected_buffer_reserved = 1'b1;
+  tb_expected_buffer_reserved = 1'b0;
   tb_expected_tx_packet_data_size = 7'd7;
   check_outputs("after initiating the Endpoint to Host Transfer Sequence");
 

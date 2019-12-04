@@ -5,16 +5,16 @@ add wave -noupdate -color Gold -radix decimal /tb_usb_ahb_soc/tb_test_case_num
 add wave -noupdate -color Salmon /tb_usb_ahb_soc/tb_clk
 add wave -noupdate -color Salmon /tb_usb_ahb_soc/tb_n_rst
 add wave -noupdate -divider {ahb bus}
-add wave -noupdate -color Cyan /tb_usb_ahb_soc/tb_hsel
-add wave -noupdate -color Cyan /tb_usb_ahb_soc/tb_htrans
-add wave -noupdate -color Cyan /tb_usb_ahb_soc/tb_hburst
-add wave -noupdate -color Cyan /tb_usb_ahb_soc/tb_haddr
-add wave -noupdate -color Cyan /tb_usb_ahb_soc/tb_hsize
-add wave -noupdate -color Cyan /tb_usb_ahb_soc/tb_hwrite
-add wave -noupdate -color Cyan /tb_usb_ahb_soc/tb_hwdata
-add wave -noupdate -color Cyan /tb_usb_ahb_soc/tb_hrdata
-add wave -noupdate -color Cyan /tb_usb_ahb_soc/tb_hresp
-add wave -noupdate -color Cyan /tb_usb_ahb_soc/tb_hready
+add wave -noupdate -group {ahb bus} -color Cyan /tb_usb_ahb_soc/tb_hsel
+add wave -noupdate -group {ahb bus} -color Cyan /tb_usb_ahb_soc/tb_htrans
+add wave -noupdate -group {ahb bus} -color Cyan /tb_usb_ahb_soc/tb_hburst
+add wave -noupdate -group {ahb bus} -color Cyan /tb_usb_ahb_soc/tb_haddr
+add wave -noupdate -group {ahb bus} -color Cyan /tb_usb_ahb_soc/tb_hsize
+add wave -noupdate -group {ahb bus} -color Cyan /tb_usb_ahb_soc/tb_hwrite
+add wave -noupdate -group {ahb bus} -color Cyan -radix hexadecimal /tb_usb_ahb_soc/tb_hwdata
+add wave -noupdate -group {ahb bus} -color Cyan -radix hexadecimal /tb_usb_ahb_soc/tb_hrdata
+add wave -noupdate -group {ahb bus} -color Cyan /tb_usb_ahb_soc/tb_hresp
+add wave -noupdate -group {ahb bus} -color Cyan /tb_usb_ahb_soc/tb_hready
 add wave -noupdate -group {ahb in sigs} /tb_usb_ahb_soc/DUT/AHBSLAVE/rx_data_ready
 add wave -noupdate -group {ahb in sigs} /tb_usb_ahb_soc/DUT/AHBSLAVE/rx_transfer_active
 add wave -noupdate -group {ahb in sigs} /tb_usb_ahb_soc/DUT/AHBSLAVE/rx_error
@@ -39,14 +39,17 @@ add wave -noupdate -divider {usb rx}
 add wave -noupdate -color {Indian Red} /tb_usb_ahb_soc/tb_dplus_in
 add wave -noupdate -color {Indian Red} /tb_usb_ahb_soc/tb_dminus_in
 add wave -noupdate -color {Indian Red} -radix decimal /tb_usb_ahb_soc/tb_numbyte
-add wave -noupdate -color {Indian Red} -radix binary /tb_usb_ahb_soc/tb_byte_out
+add wave -noupdate -color {Indian Red} -radix hexadecimal /tb_usb_ahb_soc/tb_byte_out
 add wave -noupdate -divider {usb tx}
 add wave -noupdate -color Violet /tb_usb_ahb_soc/tb_dplus_out
 add wave -noupdate -color Violet /tb_usb_ahb_soc/tb_dminus_out
 add wave -noupdate -color Violet /tb_usb_ahb_soc/tb_eop_out_detected
-add wave -noupdate -color Violet -radix binary /tb_usb_ahb_soc/tb_outcoming_byte_stable
+add wave -noupdate -color Violet /tb_usb_ahb_soc/tb_num_byte_out
+add wave -noupdate -color Violet -radix hexadecimal /tb_usb_ahb_soc/tb_outcoming_byte_stable
+add wave -noupdate -divider {New Divider}
+add wave -noupdate -color Violet -radix hexadecimal /tb_usb_ahb_soc/tb_outcoming_byte_stable_rev
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {58849359 ps} 0}
+WaveRestoreCursors {{Cursor 1} {5001732 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 162
 configure wave -valuecolwidth 100
@@ -62,4 +65,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {0 ps} {225750 ns}
+WaveRestoreZoom {2828947 ps} {10162098 ps}

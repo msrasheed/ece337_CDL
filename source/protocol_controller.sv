@@ -329,8 +329,11 @@ module protocol_controller
 			TX_ERROR_SET:	begin
 						tx_error_next = 1'b1;
 					end
-
+			
 			// Host to Endpoint: Host sends a bad packet
+			WAIT_RX_BAD:	begin
+						rx_transfer_active_next = 1'b1;
+					end
 			HE_BAD:	begin
 					clear_next = 1'b1;
 				end

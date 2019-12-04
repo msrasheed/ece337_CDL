@@ -464,6 +464,7 @@ module tb_protocol_controller();
     tb_tx_done = 1'b1;	// CHANGE: This needs to be sent from the TX for the protocol controller to advance
     expected_tx_transfer_active = 1'b0;
     expected_d_mode = 1'b0;
+    expected_clear = 1'b1;
     tb_test_state = "EH_Done";
     @(posedge tb_clk);
     check_outputs(expected_rx_data_ready,
@@ -477,6 +478,7 @@ module tb_protocol_controller();
                   tb_test_state);
     //advance to IDLE
     tb_rx_packet = RX_IDLE;
+    expected_clear = 1'b1;
     tb_test_state = "IDLE";
     @(posedge tb_clk);
     check_outputs(expected_rx_data_ready,
@@ -605,8 +607,37 @@ module tb_protocol_controller();
                     expected_tx_packet,
                     expected_d_mode,
                     tb_test_state);
-      //advance to EH_Error_Start
+
+      //advance to WAIT_RX_DATA
       tb_rx_packet = RX_OUT;
+      tb_test_state = "WAIT_RX_DATA";
+      @(posedge tb_clk);
+      check_outputs(expected_rx_data_ready,
+                    expected_rx_transfer_active,
+                    expected_rx_error,
+                    expected_tx_transfer_active,
+                    expected_tx_error,
+                    expected_clear,
+                    expected_tx_packet,
+                    expected_d_mode,
+                    tb_test_state);
+
+      //advance to WAIT_RX_DATA
+      tb_rx_packet = RX_DATA;
+      tb_test_state = "WAIT_RX_IDLE";
+      @(posedge tb_clk);
+      check_outputs(expected_rx_data_ready,
+                    expected_rx_transfer_active,
+                    expected_rx_error,
+                    expected_tx_transfer_active,
+                    expected_tx_error,
+                    expected_clear,
+                    expected_tx_packet,
+                    expected_d_mode,
+                    tb_test_state);
+
+      //advance to EH_Error_Start
+      tb_rx_packet = RX_IDLE;
       expected_tx_transfer_active = 1'b1;
       expected_d_mode = 1'b1;
       tb_test_state = "EH_Error_Start";
@@ -730,8 +761,22 @@ module tb_protocol_controller();
                     expected_tx_packet,
                     expected_d_mode,
                     tb_test_state);
-      //advance to HE_Bad state
+
+      //advance to WAIT_RX_BAD
       tb_rx_packet = RX_BAD;
+      tb_test_state = "WAIT_RX_BAD";
+      @(posedge tb_clk);
+      check_outputs(expected_rx_data_ready,
+                    expected_rx_transfer_active,
+                    expected_rx_error,
+                    expected_tx_transfer_active,
+                    expected_tx_error,
+                    expected_clear,
+                    expected_tx_packet,
+                    expected_d_mode,
+		    tb_test_state);
+      //advance to HE_Bad state
+      tb_rx_packet = RX_IDLE;
       tb_test_state = "HE_Bad";
       expected_clear = 1'b1;
       expected_rx_transfer_active = 1'b0;
